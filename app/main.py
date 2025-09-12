@@ -17,12 +17,10 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
   logger.info("Starting IBKR MCP Server...")
   try:
     success = await gateway.gateway_manager.start_gateway()
-    if success:
-      logger.info("IBKR Gateway started successfully!")
-    else:
-      logger.error("Failed to start IBKR Gateway.")
+    if not success:
+      logger.error("Failed to connect/start IBKR Gateway.")
   except Exception:
-    logger.exception("Error starting IBKR Gateway.")
+    logger.exception("Error with IBKR Gateway.")
 
   yield
 

@@ -111,7 +111,7 @@ class IBKRGatewayDockerService:
     ib = None
     try:
       ib = IB()
-      await ib.connectAsync("127.0.0.1", API_PORT, 1111)
+      await ib.connectAsync(config.ib_gateway_host, config.ib_gateway_port, 1111)
       return ib.isConnected()
     except Exception:
       return False
