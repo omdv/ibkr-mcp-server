@@ -55,6 +55,14 @@ def read_root() -> dict:
     "gateway_endpoints": "/gateway",
   }
 
+@app.get("/health")
+def health() -> dict:
+  """Return the health endpoint."""
+  return {
+    "status": "healthy",
+  }
+
+
 # MCP server, attached to the FastAPI app
 mcp = FastApiMCP(app, exclude_tags=["gateway"])
 mcp.mount()
