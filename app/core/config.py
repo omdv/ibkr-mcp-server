@@ -8,6 +8,7 @@ class Config(BaseSettings):
   model_config = {"env_prefix": "IBKR_"}
 
   # Common parameters
+  application_host: str = "127.0.0.1"  # IBKR_APPLICATION_HOST
   application_port: int = 8000  # IBKR_APPLICATION_PORT
   log_level: str = "INFO"       # IBKR_LOG_LEVEL
   gateway_mode: str = "internal"  # IBKR_GATEWAY_MODE ("internal" or "external")

@@ -11,6 +11,12 @@ def parse_args() -> argparse.Namespace:
 
   # Common arguments
   parser.add_argument(
+    "--application-host",
+    type=str,
+    default="127.0.0.1",
+    help="Application host (default: 127.0.0.1)",
+  )
+  parser.add_argument(
     "--application-port",
     type=int,
     default=8000,
@@ -76,7 +82,7 @@ def main() -> None:
   from app.main import app # noqa: PLC0415
   uvicorn.run(
     app,
-    host="127.0.0.1",
+    host=config.application_host,
     port=config.application_port,
     log_level="critical",
     access_log=False,
