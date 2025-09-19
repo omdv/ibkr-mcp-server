@@ -78,3 +78,5 @@ async def get_gateway_logs(tail: int = 100) -> dict:
       status_code=500,
       detail="Failed to get gateway logs.",
     ) from err
+
+

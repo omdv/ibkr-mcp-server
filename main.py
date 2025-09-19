@@ -3,7 +3,11 @@
 import argparse
 import uvicorn
 import sys
+
 from app.core.config import init_config
+from app.core.setup_logging import setup_logging
+
+logger = setup_logging()
 
 def parse_args() -> argparse.Namespace:
   """Parse command line arguments."""
@@ -13,7 +17,6 @@ def parse_args() -> argparse.Namespace:
   parser.add_argument(
     "--application-host",
     type=str,
-    default="127.0.0.1",
     help="Application host (default: 127.0.0.1)",
   )
   parser.add_argument(
@@ -80,6 +83,8 @@ def main() -> None:
       sys.exit(1)
 
   from app.main import app # noqa: PLC0415
+
+  logger.info(f"Starting on http://{config.application_host}:{config.application_port}")
   uvicorn.run(
     app,
     host=config.application_host,

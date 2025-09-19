@@ -15,12 +15,17 @@ logger = setup_logging()
 async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
   """Lifespan events for the application."""
   logger.info("Starting IBKR MCP Server...")
-  try:
-    success = await gateway.gateway_manager.start_gateway()
-    if not success:
-      logger.error("Failed to connect/start IBKR Gateway.")
-  except Exception:
-    logger.exception("Error with IBKR Gateway.")
+
+  # Only start internal gateway during startup, external gateway is handled on-demand
+  if not gateway.gateway_manager.is_external:
+    try:
+      success = await gateway.gateway_manager.start_gateway()
+      if not success:
+        logger.error("Failed to start internal IBKR Gateway.")
+    except Exception:
+      logger.exception("Error starting internal IBKR Gateway.")
+  else:
+    logger.info("External gateway mode - connection will be established on-demand")
 
   yield
 
@@ -52,16 +57,8 @@ def read_root() -> dict:
   return {
     "message": "Welcome to the IBKR MCP Server",
     "docs": "/docs",
-    "gateway_endpoints": "/gateway",
+    "status": "/gateway/status",
   }
-
-@app.get("/health")
-def health() -> dict:
-  """Return the health endpoint."""
-  return {
-    "status": "healthy",
-  }
-
 
 # MCP server, attached to the FastAPI app
 mcp = FastApiMCP(app, exclude_tags=["gateway"])
