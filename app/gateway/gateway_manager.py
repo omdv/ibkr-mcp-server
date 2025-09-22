@@ -45,7 +45,13 @@ class IBKRGatewayManager:
     """
     try:
       ib = IB()
-      await ib.connectAsync(config.ib_gateway_host, config.ib_gateway_port, 1111)
+      await ib.connectAsync(
+        config.ib_gateway_host,
+        config.ib_gateway_port,
+        clientId=1111,
+        timeout=20,
+        readonly=False,
+      )
       is_connected = ib.isConnected()
       if is_connected:
         ib.disconnect()
