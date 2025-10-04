@@ -62,6 +62,13 @@ def parse_args() -> argparse.Namespace:
     help="IBKR Gateway port (for external mode)",
   )
 
+  # CORS arguments
+  parser.add_argument(
+    "--cors-allowed-origins",
+    type=str,
+    help="Comma-separated list of allowed CORS origins (default: *)",
+  )
+
   return parser.parse_args()
 
 def main() -> None:
@@ -89,7 +96,7 @@ def main() -> None:
     app,
     host=config.application_host,
     port=config.application_port,
-    log_level="critical",
+    log_level="debug",
     access_log=False,
   )
 

@@ -1,12 +1,14 @@
 """Main module for the IBKR MCP Server."""
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi_mcp import FastApiMCP
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from app.api import gateway
 from app.api.ibkr import ibkr_router
+from app.core.config import get_config
 from app.core.setup_logging import setup_logging
 
 logger = setup_logging()
@@ -45,6 +47,18 @@ app = FastAPI(
   version="1.0.0",
   docs_url="/docs",
   lifespan=lifespan,
+)
+
+# Get configuration
+config = get_config()
+
+# Add CORS middleware
+app.add_middleware(
+  CORSMiddleware,
+  allow_origins=config.cors_allowed_origins,
+  allow_credentials=True,
+  allow_methods=["*"],
+  allow_headers=["*"],
 )
 
 # Include routers

@@ -1,5 +1,5 @@
 """Configuration for the application."""
-from typing import Any
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 class Config(BaseSettings):
@@ -26,6 +26,17 @@ class Config(BaseSettings):
   enable_file_logging: bool = False   # IBKR_ENABLE_FILE_LOGGING
   log_file_path: str = "logs/app.log"  # IBKR_LOG_FILE_PATH
 
+  # CORS parameters
+  cors_allowed_origins: list[str] = ["*"]  # IBKR_CORS_ALLOWED_ORIGINS (comma-separated)
+
+  @field_validator("cors_allowed_origins", mode="before")
+  @classmethod
+  def parse_cors_origins(cls, v: str | list[str]) -> list[str]:
+    """Parse comma-separated CORS origins from environment variable."""
+    if isinstance(v, str):
+      return [origin.strip() for origin in v.split(",") if origin.strip()]
+    return v if isinstance(v, list) else ["*"]
+
 
 class ConfigManager:
   """Singleton class to manage the global config."""
@@ -40,7 +51,7 @@ class ConfigManager:
     return cls._instance
 
   @classmethod
-  def init_config(cls, **kwargs: Any) -> Config:
+  def init_config(cls, **kwargs: str | int | bool | None) -> Config:
     """Initialize the global config with CLI parameters."""
     cls._instance = Config(**kwargs)
     return cls._instance
@@ -50,6 +61,6 @@ def get_config() -> Config:
   """Get the global config instance."""
   return ConfigManager.get_config()
 
-def init_config(**kwargs: Any) -> Config:
+def init_config(**kwargs: str | int | bool | None) -> Config:
   """Initialize the global config with CLI parameters."""
   return ConfigManager.init_config(**kwargs)
