@@ -4,19 +4,34 @@ A FastAPI application that provides an MCP (Model Context Protocol) server for I
 
 ## Features
 
-- **Docker Management**: Automatic IBKR Gateway container lifecycle
 - **Trading Operations**: Supports market data, positions, contracts, and scanners
 - **Health Monitoring**: Health checks, restarts gateways when no market data
+- **Docker Management**: IBKR Gateway container lifecycle (optional)
 
-## Quick Start
+## Usage
 
-### Prerequisites
+### Helm (Kubernetes)
 
-- Python 3.13+
-- Docker installed and running
-- IBKR account credentials
+Install directly from this Git repository:
 
-### Installation
+```bash
+# Install from main branch
+helm install ibkr-mcp-server git+https://github.com/your-username/ibkr-mcp-server@main?path=chart
+
+# Install from a specific release
+helm install ibkr-mcp-server git+https://github.com/your-username/ibkr-mcp-server@v1.0.0?path=chart
+```
+
+### Docker Compose
+
+```bash
+export IBKR_IB_GATEWAY_USERNAME="YOUR USERNAME"
+export IBKR_IB_GATEWAY_PASSWORD="YOUR PASSWORD"
+docker-compose up -d --build
+```
+
+
+### Development
 
 1. **Clone and setup:**
    ```bash

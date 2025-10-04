@@ -18,6 +18,7 @@
           packages = with pkgs; [
             uv
             nodejs_22
+            kubernetes-helm
           ];
 
           # Environment variables and commands to run when entering the shell.

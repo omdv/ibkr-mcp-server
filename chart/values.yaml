@@ -1,0 +1,100 @@
+imagePullSecrets: []
+
+ibGateway:
+  image:
+    repository: ghcr.io/extrange/ibkr
+    tag: "10.39"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    ports:
+      vnc: 6080
+      api: 8888
+      command: 7462
+
+  resources:
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+    requests:
+      memory: "1Gi"
+      cpu: "1000m"
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    failureThreshold: 10
+
+mcpServer:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/omdv/ibkr-mcp-server
+    tag: "latest"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 8000
+
+  ingress:
+    enabled: false
+    className: nginx
+    host: ibkr-mcp-server.local
+    path: /
+    pathType: Prefix
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+    tls: []
+    # Example TLS configuration:
+    # tls:
+    # - secretName: ibkr-mcp-server-tls
+    #   hosts:
+    #   - ibkr-mcp-server.local
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    failureThreshold: 3
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 10
+    periodSeconds: 30
+    failureThreshold: 3
+
+config:
+  # IB Gateway Configuration
+  twoFaTimeoutAction: "restart"
+  ibcTradingMode: "live"
+  ibcReadOnlyApi: "no"
+  ibcReloginAfterSecondFactorAuthenticationTimeout: "yes"
+  ibcAutoRestartTime: "06:00 AM"
+  ibcCommandServerPort: "7462"
+  ibcControlFrom: "127.0.0.1"
+  ibcBindAddress: "127.0.0.1"
+
+  # MCP Server Configuration
+  ibkrLogLevel: "INFO"
+
+secrets:
+  # Set to true to create a new secret with the values below
+  # Set to false to use an existing secret (specify name in existingSecret)
+  create: true
+
+  # Name of existing secret to use (only used when create: false)
+  # The secret must contain 'username' and 'password' keys
+  existingSecret: ""
+
+  # Base64 encoded values - only used when create: true
+  username: ""
+  password: ""
+
+networkPolicy:
+  enabled: true
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

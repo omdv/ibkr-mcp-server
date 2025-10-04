@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ibkr.fullname" . }}-ib-gateway
+  labels:
+    {{- include "ibkr.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ib-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "ibkr.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: ib-gateway
+  template:
+    metadata:
+      labels:
+        {{- include "ibkr.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: ib-gateway
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: ib-gateway
+        image: "{{ .Values.ibGateway.image.repository }}:{{ .Values.ibGateway.image.tag }}"
+        imagePullPolicy: {{ .Values.ibGateway.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.ibGateway.service.ports.vnc }}
+        - containerPort: {{ .Values.ibGateway.service.ports.api }}
+        - containerPort: {{ .Values.ibGateway.service.ports.command }}
+        securityContext:
+          capabilities:
+            add:
+              - SYS_RESOURCE
+        resources:
+          {{- toYaml .Values.ibGateway.resources | nindent 10 }}
+        env:
+        - name: USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "ibkr.secretName" . }}
+              key: username
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "ibkr.secretName" . }}
+              key: password
+        envFrom:
+        - configMapRef:
+            name: {{ include "ibkr.fullname" . }}-config
+        livenessProbe:
+          tcpSocket:
+            port: 4001
+          initialDelaySeconds: {{ .Values.ibGateway.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.ibGateway.livenessProbe.periodSeconds }}
+          timeoutSeconds: {{ .Values.ibGateway.livenessProbe.timeoutSeconds }}
+          failureThreshold: {{ .Values.ibGateway.livenessProbe.failureThreshold }}
+      restartPolicy: Always
