@@ -56,11 +56,11 @@ def setup_logging() -> None:
   logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
 
   logging.getLogger("ib_async").setLevel(logging.CRITICAL)
-  logging.getLogger("uvicorn").setLevel(logging.CRITICAL)
-  logging.getLogger("uvicorn.access").setLevel(logging.CRITICAL)
-  logging.getLogger("uvicorn.error").setLevel(logging.CRITICAL)
-  logging.getLogger("fastapi").setLevel(logging.DEBUG)
-  logging.getLogger("fastapi_mcp").setLevel(logging.DEBUG)
+  logging.getLogger("uvicorn").setLevel(config.log_level)
+  logging.getLogger("uvicorn.access").setLevel(config.log_level)
+  logging.getLogger("uvicorn.error").setLevel(config.log_level)
+  logging.getLogger("fastapi").setLevel(logging.CRITICAL)
+  logging.getLogger("fastapi_mcp").setLevel(logging.CRITICAL)
   logging.getLogger("asyncio").setLevel(logging.CRITICAL)
 
   return logger

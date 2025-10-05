@@ -10,9 +10,7 @@ from app.api import gateway
 from app.api.ibkr import ibkr_router
 from app.core.auth import AuthMiddleware
 from app.core.config import get_config
-from app.core.setup_logging import setup_logging
-
-logger = setup_logging()
+from app.core.setup_logging import logger
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:

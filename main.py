@@ -115,6 +115,7 @@ def main() -> None:
     host=config.application_host,
     port=config.application_port,
     log_config=None,
+    access_log=True,
   )
 
 if __name__ == "__main__":
