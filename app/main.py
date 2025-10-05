@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 
 from app.api import gateway
 from app.api.ibkr import ibkr_router
+from app.core.auth import AuthMiddleware
 from app.core.config import get_config
 from app.core.setup_logging import setup_logging
 
@@ -60,6 +61,9 @@ app.add_middleware(
   allow_methods=["*"],
   allow_headers=["*"],
 )
+
+# Add authentication middleware
+app.add_middleware(AuthMiddleware)
 
 # Include routers
 app.include_router(gateway.router)

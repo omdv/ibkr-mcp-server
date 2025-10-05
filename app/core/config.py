@@ -1,4 +1,5 @@
 """Configuration for the application."""
+import secrets
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
@@ -26,8 +27,10 @@ class Config(BaseSettings):
   enable_file_logging: bool = False   # IBKR_ENABLE_FILE_LOGGING
   log_file_path: str = "logs/app.log"  # IBKR_LOG_FILE_PATH
 
-  # CORS parameters
+  # Security parameters
   cors_allowed_origins: list[str] = ["*"]  # IBKR_CORS_ALLOWED_ORIGINS (comma-separated)
+  auth_token: str | None = None  # IBKR_AUTH_TOKEN
+  _generated_token: str | None = None  # Internal field for generated token
 
   @field_validator("cors_allowed_origins", mode="before")
   @classmethod
@@ -37,6 +40,19 @@ class Config(BaseSettings):
       return [origin.strip() for origin in v.split(",") if origin.strip()]
     return v if isinstance(v, list) else ["*"]
 
+  def get_effective_auth_token(self) -> str:
+    """Get the effective auth token, generating one if none provided."""
+    if self.auth_token:
+      return self.auth_token
+
+    if not self._generated_token:
+      self._generated_token = secrets.token_urlsafe(32)
+
+    return self._generated_token
+
+  def is_token_generated(self) -> bool:
+    """Check if the auth token was auto-generated."""
+    return self.auth_token is None
 
 class ConfigManager:
   """Singleton class to manage the global config."""

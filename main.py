@@ -69,6 +69,13 @@ def parse_args() -> argparse.Namespace:
     help="Comma-separated list of allowed CORS origins (default: *)",
   )
 
+  # Authentication arguments
+  parser.add_argument(
+    "--auth-token",
+    type=str,
+    help="Bearer token for API authentication (optional)",
+  )
+
   return parser.parse_args()
 
 def main() -> None:
@@ -90,6 +97,16 @@ def main() -> None:
       sys.exit(1)
 
   from app.main import app # noqa: PLC0415
+
+  # Display authentication information
+  auth_token = config.get_effective_auth_token()
+  if config.is_token_generated():
+    print("🔐 SECURITY: Auto-generated authentication token") #noqa: T201
+    print(f"🔑 Bearer Token: {auth_token}") #noqa: T201
+    print("💡 Use this token in Authorization header: Bearer <token>") #noqa: T201
+    print("💡 Set IBKR_AUTH_TOKEN env var to use a custom token") #noqa: T201
+  else:
+    print("🔐 SECURITY: Using provided authentication token") #noqa: T201
 
   logger.info(f"Starting on http://{config.application_host}:{config.application_port}")
   uvicorn.run(
