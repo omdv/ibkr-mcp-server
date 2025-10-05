@@ -28,17 +28,15 @@ class Config(BaseSettings):
   log_file_path: str = "logs/app.log"  # IBKR_LOG_FILE_PATH
 
   # Security parameters
-  cors_allowed_origins: list[str] = ["*"]  # IBKR_CORS_ALLOWED_ORIGINS (comma-separated)
+  cors_allowed_origins: str = "*"  # IBKR_CORS_ALLOWED_ORIGINS (comma-separated)
   auth_token: str | None = None  # IBKR_AUTH_TOKEN
   _generated_token: str | None = None  # Internal field for generated token
 
-  @field_validator("cors_allowed_origins", mode="before")
-  @classmethod
-  def parse_cors_origins(cls, v: str | list[str]) -> list[str]:
-    """Parse comma-separated CORS origins from environment variable."""
-    if isinstance(v, str):
-      return [origin.strip() for origin in v.split(",") if origin.strip()]
-    return v if isinstance(v, list) else ["*"]
+  def get_cors_origins_list(self) -> list[str]:
+    """Parse comma-separated CORS origins into a list."""
+    if not self.cors_allowed_origins:
+      return ["*"]
+    return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
 
   def get_effective_auth_token(self) -> str:
     """Get the effective auth token, generating one if none provided."""

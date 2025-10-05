@@ -113,8 +113,7 @@ def main() -> None:
     app,
     host=config.application_host,
     port=config.application_port,
-    log_level="debug",
-    access_log=False,
+    log_config=None,
   )
 
 if __name__ == "__main__":

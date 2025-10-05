@@ -56,7 +56,7 @@ config = get_config()
 # Add CORS middleware
 app.add_middleware(
   CORSMiddleware,
-  allow_origins=config.cors_allowed_origins,
+  allow_origins=config.get_cors_origins_list(),
   allow_credentials=True,
   allow_methods=["*"],
   allow_headers=["*"],

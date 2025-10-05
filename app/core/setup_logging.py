@@ -5,6 +5,27 @@ import logging
 from loguru import logger
 from app.core.config import get_config
 
+class InterceptHandler(logging.Handler):
+  """Intercept handler for logging."""
+
+  def emit(self, record: logging.LogRecord) -> None:
+    """Emit a record."""
+    # Get corresponding Loguru level if it exists
+    try:
+      level = logger.level(record.levelname).name
+    except ValueError:
+      level = record.levelno
+
+    # Find caller from where originated the logged message
+    frame, depth = logging.currentframe(), 2
+    while frame.f_code.co_filename == logging.__file__:
+      frame = frame.f_back
+      depth += 1
+
+    logger.opt(depth=depth, exception=record.exc_info).log(
+      level, record.getMessage(),
+    )
+
 
 def setup_logging() -> None:
   """Set up logging configuration based on settings."""
@@ -32,11 +53,14 @@ def setup_logging() -> None:
       retention="7 days",
     )
 
+  logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
+
   logging.getLogger("ib_async").setLevel(logging.CRITICAL)
   logging.getLogger("uvicorn").setLevel(logging.CRITICAL)
   logging.getLogger("uvicorn.access").setLevel(logging.CRITICAL)
   logging.getLogger("uvicorn.error").setLevel(logging.CRITICAL)
   logging.getLogger("fastapi").setLevel(logging.DEBUG)
+  logging.getLogger("fastapi_mcp").setLevel(logging.DEBUG)
   logging.getLogger("asyncio").setLevel(logging.CRITICAL)
 
   return logger
