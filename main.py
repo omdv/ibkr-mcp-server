@@ -101,12 +101,13 @@ def main() -> None:
   # Display authentication information
   auth_token = config.get_effective_auth_token()
   if config.is_token_generated():
-    print("🔐 SECURITY: Auto-generated authentication token") #noqa: T201
-    print(f"🔑 Bearer Token: {auth_token}") #noqa: T201
-    print("💡 Use this token in Authorization header: Bearer <token>") #noqa: T201
-    print("💡 Set IBKR_AUTH_TOKEN env var to use a custom token") #noqa: T201
+    logger.info("🔐 SECURITY: Auto-generated authentication token")
+    logger.info(f"🔑 Bearer Token: {auth_token}")
+    logger.info("💡 Use this token in Authorization header: Bearer <token>")
+    logger.info("💡 Set IBKR_AUTH_TOKEN env var to use a custom token")
   else:
-    print("🔐 SECURITY: Using provided authentication token") #noqa: T201
+    logger.info("🔐 SECURITY: Using provided authentication token")
+  logger.info(f"CORS allowed origins: {config.get_cors_origins_list()}")
 
   logger.info(f"Starting on http://{config.application_host}:{config.application_port}")
   uvicorn.run(
