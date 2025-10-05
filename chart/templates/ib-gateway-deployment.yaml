@@ -39,12 +39,12 @@ spec:
         - name: USERNAME
           valueFrom:
             secretKeyRef:
-              name: {{ include "ibkr.secretName" . }}
+              name: {{ include "ibkr.gatewaySecretName" . }}
               key: username
         - name: PASSWORD
           valueFrom:
             secretKeyRef:
-              name: {{ include "ibkr.secretName" . }}
+              name: {{ include "ibkr.gatewaySecretName" . }}
               key: password
         envFrom:
         - configMapRef:

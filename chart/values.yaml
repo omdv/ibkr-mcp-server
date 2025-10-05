@@ -13,13 +13,13 @@ ibGateway:
       api: 8888
       command: 7462
 
-  resources:
-    limits:
-      memory: "2Gi"
-      cpu: "2000m"
-    requests:
-      memory: "1Gi"
-      cpu: "1000m"
+  resources: {}
+    # limits:
+    #   memory: "2Gi"
+    #   cpu: "2000m"
+    # requests:
+    #   memory: "1Gi"
+    #   cpu: "1000m"
 
   livenessProbe:
     enabled: true
@@ -79,18 +79,27 @@ config:
   # MCP Server Configuration
   ibkrLogLevel: "INFO"
 
-secrets:
-  # Set to true to create a new secret with the values below
+  # CORS Configuration
+  corsAllowedOrigins: "*"
+
+# IB Gateway credentials
+gatewaySecret:
+  # Name of existing secret containing IB Gateway credentials
+  # The secret must contain 'username' and 'password' keys
+  existingSecret: ""
+
+# MCP Server authentication
+mcpAuth:
+  # Set to true to create a new auth secret with auto-generated token
   # Set to false to use an existing secret (specify name in existingSecret)
   create: true
 
   # Name of existing secret to use (only used when create: false)
-  # The secret must contain 'username' and 'password' keys
+  # The secret must contain 'authToken' key
   existingSecret: ""
 
-  # Base64 encoded values - only used when create: true
-  username: ""
-  password: ""
+  # Auth token value (leave empty to auto-generate a secure random token)
+  authToken: ""
 
 networkPolicy:
   enabled: true

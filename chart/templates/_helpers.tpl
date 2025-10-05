@@ -51,12 +51,19 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Secret name for IBKR credentials
+Secret name for IBKR Gateway credentials
 */}}
-{{- define "ibkr.secretName" -}}
-{{- if .Values.secrets.create -}}
-{{ include "ibkr.fullname" . }}-secrets
+{{- define "ibkr.gatewaySecretName" -}}
+{{ .Values.gatewaySecret.existingSecret }}
+{{- end }}
+
+{{/*
+Secret name for MCP authentication
+*/}}
+{{- define "ibkr.mcpAuthSecretName" -}}
+{{- if .Values.mcpAuth.create -}}
+{{ include "ibkr.fullname" . }}-mcp-auth
 {{- else -}}
-{{ .Values.secrets.existingSecret }}
+{{ .Values.mcpAuth.existingSecret }}
 {{- end -}}
 {{- end }}
