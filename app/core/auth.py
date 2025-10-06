@@ -1,48 +1,49 @@
-"""Authentication middleware for the application."""
-
+"""Authentication dependency for the IBKR MCP Server."""
 import secrets
-from fastapi import FastAPI, Request, status, Response
-from fastapi.responses import JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi import status, HTTPException, Depends, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.core.config import get_config
 
-# Define whitelisted paths in a set for efficient lookups
-PUBLIC_PATHS = {
-  "/",
-  "/gateway/status",
-  "/docs",
-}
+# A list of paths that do not require authentication
+UNPROTECTED_PATHS = [
+    "/",
+    "/gateway/status",
+]
 
-class AuthMiddleware(BaseHTTPMiddleware):
-  """Authentication middleware that protects all endpoints except public ones."""
+# 1. Tell HTTPBearer not to raise an error if the token is missing
+token_auth_scheme = HTTPBearer(auto_error=False)
+token_dependency = Depends(token_auth_scheme)
 
-  def __init__(self, app: FastAPI) -> None:
-    """Initialize the authentication middleware."""
-    super().__init__(app)
 
-  async def dispatch(self, request: Request, call_next) -> Response: #noqa: ANN001
-    """Process the request and check authentication."""
-    if request.url.path in PUBLIC_PATHS:
-      return await call_next(request)
+async def auth_dependency(
+  request: Request,
+  token: HTTPAuthorizationCredentials | None = token_dependency,
+) -> str | None:
+  """Dependency to verify the bearer token, allowing for unprotected routes."""
+  if request.url.path in UNPROTECTED_PATHS:
+    return None
 
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-      return JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        content={"detail": "Missing or invalid authorization header"},
-        headers={"WWW-Authenticate": "Bearer"},
-      )
+  if token is None:
+    raise HTTPException(
+      status_code=status.HTTP_401_UNAUTHORIZED,
+      detail="Not authenticated",
+      headers={"WWW-Authenticate": "Bearer"},
+    )
 
-    token = auth_header.split(" ")[1]
+  config = get_config()
+  expected_token = config.get_effective_auth_token()
 
-    config = get_config()
-    expected_token = config.get_effective_auth_token()
+  if not expected_token:
+    raise HTTPException(
+      status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+      detail="Authentication token not configured on the server.",
+    )
 
-    if not secrets.compare_digest(token, expected_token):
-      return JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        content={"detail": "Invalid authentication token"},
-        headers={"WWW-Authenticate": "Bearer"},
-      )
+  if not secrets.compare_digest(token.credentials, expected_token):
+    raise HTTPException(
+      status_code=status.HTTP_401_UNAUTHORIZED,
+      detail="Invalid authentication token",
+      headers={"WWW-Authenticate": "Bearer"},
+    )
 
-    return await call_next(request)
+  return token.credentials

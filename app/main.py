@@ -1,6 +1,6 @@
 """Main module for the IBKR MCP Server."""
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_mcp import FastApiMCP
 from collections.abc import AsyncGenerator
@@ -8,8 +8,8 @@ from contextlib import asynccontextmanager
 
 from app.api import gateway
 from app.api.ibkr import ibkr_router
-from app.core.auth import AuthMiddleware
 from app.core.config import get_config
+from app.core.auth import auth_dependency
 from app.core.setup_logging import logger
 
 @asynccontextmanager
@@ -39,16 +39,16 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
   except Exception:
     logger.exception("Error during cleanup.")
 
-
+# FastAPI with authentication dependency
 app = FastAPI(
   title="IBKR MCP Server",
   description="Interactive Brokers MCP Server",
-  version="1.0.0",
+  version="0.1.0",
   docs_url="/docs",
   lifespan=lifespan,
+  dependencies=[Depends(auth_dependency)],
 )
 
-# Get configuration
 config = get_config()
 
 # Add CORS middleware
@@ -60,9 +60,6 @@ app.add_middleware(
   allow_methods=["*"],
   allow_headers=["*"],
 )
-
-# Add authentication middleware
-app.add_middleware(AuthMiddleware)
 
 # Include routers
 app.include_router(gateway.router)
@@ -77,6 +74,9 @@ def read_root() -> dict:
     "status": "/gateway/status",
   }
 
-# MCP server, attached to the FastAPI app
-mcp = FastApiMCP(app, exclude_tags=["gateway"])
+# MCP server, attached to the FastAPI app, excludes the gateway router
+mcp = FastApiMCP(
+  app,
+  exclude_tags=["gateway"],
+)
 mcp.mount()
