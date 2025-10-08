@@ -1,4 +1,6 @@
 """Gateway manager for IBKR TWS Gateway."""
+import datetime as dt
+
 from typing import Any
 from ib_async import IB
 
@@ -48,7 +50,7 @@ class IBKRGatewayManager:
       await ib.connectAsync(
         config.ib_gateway_host,
         config.ib_gateway_port,
-        clientId=1111,
+        clientId="1"+dt.datetime.now(dt.UTC).strftime("%H%M%S"),
         timeout=20,
         readonly=False,
       )
