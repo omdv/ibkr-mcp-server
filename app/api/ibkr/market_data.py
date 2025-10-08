@@ -6,7 +6,6 @@ from app.core.setup_logging import logger
 from app.models import TickerData
 
 # Module-level query parameter definitions
-CONTRACT_IDS_QUERY = Query(default=None, description="List of contract IDs")
 FILTERS_QUERY = Query(default=None, description="Filters as JSON string")
 CRITERIA_QUERY = Query(default=None, description="Criteria as JSON string")
 
@@ -16,7 +15,7 @@ CRITERIA_QUERY = Query(default=None, description="Criteria as JSON string")
   response_model=list[TickerData],
 )
 async def get_tickers(
-  contract_ids: list[int] | None = CONTRACT_IDS_QUERY,
+  contract_ids: str | None = None,
 ) -> list[TickerData]:
   """Get tickers for a list of contract IDs.
 
@@ -24,13 +23,14 @@ async def get_tickers(
   It will return the last price and symbol, and greeks (if applicable).
 
   Args:
-    contract_ids (list[int]): A list of contract IDs to get tickers for.
+    contract_ids (str): Comma-separated list of contract IDs to get tickers for.
 
   Returns:
-    List[TickerData]: A list of ticker dictionaries for the contract IDs.
+    List[dict]: A list of ticker dictionaries for the contract IDs.
+    will include the contractId, symbol, secType, last, bid, ask, and greeks.
 
   Example:
-    await get_tickers_details([123456, 789012])
+    await get_tickers("123456,789012")
     [
       {
         "symbol": "AAPL",
@@ -48,11 +48,18 @@ async def get_tickers(
 
   """
   try:
+    if contract_ids:
+      contract_ids_list = [
+        int(cid.strip()) for cid in contract_ids.split(",") if cid.strip()
+      ]
+    else:
+      contract_ids_list = None
+
     logger.debug(
-      "Getting tickers for contract IDs: {contract_ids}",
-      contract_ids=contract_ids,
+      "Getting tickers for contract IDs: {contract_ids_list}",
+      contract_ids_list=contract_ids_list,
     )
-    tickers = await ib_interface.get_tickers(contract_ids)
+    tickers = await ib_interface.get_tickers(contract_ids_list)
   except Exception as e:
     logger.error("Error in get_tickers: {!s}", str(e))
     return []
