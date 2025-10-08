@@ -79,9 +79,6 @@ config:
   # MCP Server Configuration
   ibkrLogLevel: "INFO"
 
-  # CORS Configuration
-  corsAllowedOrigins: "*"
-
 # IB Gateway credentials
 gatewaySecret:
   # Name of existing secret containing IB Gateway credentials
