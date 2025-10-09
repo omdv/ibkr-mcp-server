@@ -1,4 +1,4 @@
-"""Pydantic models for options chain requests."""
+"""Pydantic models for options and contract requests."""
 from pydantic import BaseModel, Field
 
 class OptionsFilters(BaseModel):
@@ -64,3 +64,61 @@ class OptionsRequest(BaseModel):
     default=None,
     description="Optional market data criteria to filter by",
   )
+
+
+class ContractOptions(BaseModel):
+  """Optional parameters for contract details."""
+
+  last_trade_date_or_contract_month: str | None = Field(
+    default=None,
+    alias="lastTradeDateOrContractMonth",
+    description="Expiry date for options in YYYYMMDD format",
+  )
+  strike: float | None = Field(
+    default=None,
+    description="Strike price for options",
+  )
+  right: str | None = Field(
+    default=None,
+    description="Right for options - 'C' for calls or 'P' for puts",
+  )
+  trading_class: str | None = Field(
+    default=None,
+    alias="tradingClass",
+    description="Trading class (e.g., 'SPXW' for weekly SPX options)",
+  )
+
+  class Config:
+    """Config for contract options."""
+
+    populate_by_name = True
+
+
+class ContractDetailsRequest(BaseModel):
+  """Request model for contract details endpoint."""
+
+  symbol: str = Field(
+    ...,
+    description="Symbol to get contract details for",
+  )
+  sec_type: str = Field(
+    ...,
+    description="Security type (STK, IND, CASH, BAG, BOND, FUT, OPT)",
+  )
+  exchange: str = Field(
+    ...,
+    description="Exchange (CBOE, NYSE, ARCA, BATS, NASDAQ)",
+  )
+  options: ContractOptions | None = Field(
+    default=None,
+    description="Optional parameters for options contracts",
+  )
+
+
+class OptionsChainRequest(BaseModel):
+  """Request model for options chain endpoint."""
+
+  underlying_symbol: str = Field(...,description="Symbol of the underlying contract")
+  underlying_sec_type: str = Field(...,description="Security type of the underlying")
+  underlying_con_id: int = Field(...,description="Contract ID of the underlying")
+  filters: OptionsFilters = Field(...,description="Filters to apply to the options chain") #noqa: E501

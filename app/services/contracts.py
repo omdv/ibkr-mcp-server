@@ -1,6 +1,6 @@
 """Contract operations."""
 from ib_async import util
-from ib_async.contract import Contract, Option
+from ib_async.contract import Contract, Option, ComboLeg
 
 from app.core.setup_logging import logger
 from .client import IBClient
@@ -165,3 +165,57 @@ class ContractClient(IBClient):
       raise
     else:
       return contracts.to_dict(orient="records")
+
+  async def create_combo_contract(
+    self,
+    contract_ids: list[int],
+    actions: list[str],
+    exchange: str = "SMART",
+  ) -> dict:
+    """Create the spread contract from contract ids and actions.
+
+    Args:
+      contract_ids: List of contract ids.
+      actions: List of actions.
+      exchange: Exchange to create the combo contract for.
+
+    Returns:
+      Contract: The created combo contract.
+
+    """
+    if len(contract_ids) != len(actions):
+      logger.error("Number of contracts and actions must be the same")
+      return None
+
+    try:
+      await self._connect()
+      contracts = [Contract(conId=contract_id) for contract_id in contract_ids]
+      contracts = await self.ib.qualifyContractsAsync(*contracts)
+    except Exception as e:
+      logger.error("Error qualifying contracts: {}", str(e))
+      return None
+
+    # Create empty combo contract
+    contract = Contract(
+      symbol=contracts[0].symbol,
+      secType="BAG",
+      exchange=exchange,
+    )
+
+    # Add legs to the contract
+    legs = []
+    for action, contract in zip(actions, contracts, strict=True):
+      logger.debug("Adding leg to combo contract: {contract}", contract=contract)
+      leg = ComboLeg()
+      leg.conId = contract.conId
+      leg.ratio = 1
+      leg.exchange = exchange
+      leg.action = action.upper()
+      legs.append(leg)
+
+    contract.comboLegs = legs
+
+    # Log contract details
+    logger.debug("Target combo contract: {}", contract)
+
+    return contract.dict()
