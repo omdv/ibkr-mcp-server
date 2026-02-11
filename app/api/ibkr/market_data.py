@@ -18,6 +18,7 @@ CRITERIA_QUERY = Query(default=None, description="Criteria as JSON string")
 )
 async def get_tickers(
   contract_ids: list[int] | None = CONTRACT_IDS_QUERY,
+  market_data_subscription_type: str = "realtime" 
 ) -> list[TickerData]:
   """Get tickers for a list of contract IDs.
 
@@ -53,7 +54,7 @@ async def get_tickers(
       "Getting tickers for contract IDs: {contract_ids}",
       contract_ids=contract_ids,
     )
-    tickers = await ib_interface.get_tickers(contract_ids)
+    tickers = await ib_interface.get_tickers(contract_ids, market_data_subscription_type)
   except Exception as e:
     logger.error("Error in get_tickers: {!s}", str(e))
     return []

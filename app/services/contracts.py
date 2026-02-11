@@ -123,7 +123,10 @@ class ContractClient(IBClient):
       )
 
       while True:
-        contracts = await self.ib.qualifyContractsAsync(contract, returnAll=True)
+        contracts = await asyncio.wait_for(
+            self.ib.qualifyContractsAsync(contract, returnAll=True),
+            timeout=self.config.ib_request_timeout,
+          )
         if not contracts or contracts[0] is None:
           return []
 
@@ -258,13 +261,23 @@ class ContractClient(IBClient):
           ]
 
           try:
-            contracts = await self.ib.qualifyContractsAsync(*contracts, returnAll=True)
+            contracts = await asyncio.wait_for(
+                self.ib.qualifyContractsAsync(*contracts, returnAll=True),
+                timeout=self.config.ib_request_timeout,
+              )
             if len(contracts) == 0:
               raise Exception("No contracts found for the given filters.")
             contracts = [c for c in contracts if c is not None]
+            if len(contracts) == 0:
+              raise Exception("No contracts found for the given filters.")
             contracts_df = convert_df_columns_to_snake_case(util.df(contracts))
+            
+            # Check if contracts_df is None (util.df can return None for certain inputs)
+            if contracts_df is None:
+              raise Exception("Failed to convert contracts to DataFrame.")
 
-            # Add friendly_symbol column for options
+            if contracts_df.empty:
+              raise Exception("No contracts found for the given filters.")
             contracts_df['friendly_symbol'] = contracts_df.apply(self._format_friendly_option_symbol, axis=1)
 
             # Reorder columns to place friendly_symbol after local_symbol

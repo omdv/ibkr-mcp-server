@@ -43,7 +43,7 @@ class MarketDataClient(IBClient):
     """
     if not value:
       return None
-    if str(value).lower() in ['nan', 'inf', '-inf', '-1', '-1.0']:
+    if str(value).lower() in ['nan', 'inf', '-inf', '-1', '-1.0', '-2.0']:
       return None
     try:
       return value_type(value)
@@ -56,9 +56,6 @@ class MarketDataClient(IBClient):
     result["contract_id"] = result["contract"].apply(lambda x: x.conId)
     result["symbol"] = result["contract"].apply(lambda x: x.localSymbol)
     result["sec_type"] = result["contract"].apply(lambda x: x.secType)
-    result["last"] = result["last"].astype(float)
-    result["bid"] = result["bid"].astype(float)
-    result["ask"] = result["ask"].astype(float)
     result["greeks"] = result.apply(self._greek_extraction, axis=1)
     result["timestamp"] = result["time"].apply(lambda x: x.isoformat() if x else None)
     result["market_data_type"] = result["marketDataType"]
@@ -71,8 +68,12 @@ class MarketDataClient(IBClient):
         symbol=row["symbol"],
         sec_type=row["sec_type"],
         last=self._valid_value(row.get("last"), float),
+        close=self._valid_value(row.get("close"), float),
         bid=self._valid_value(row.get("bid"), float),
         ask=self._valid_value(row.get("ask"), float),
+        high=self._valid_value(row.get("high"), float),
+        low=self._valid_value(row.get("low"), float),
+        volume=self._valid_value(row.get("volume"), int),
         greeks=row["greeks"],
         timestamp=row["timestamp"] or "",
         market_data_type=row["market_data_type"],
@@ -85,29 +86,40 @@ class MarketDataClient(IBClient):
     """Extract greeks from a ticker.
 
     Only extract greeks for options contracts, use modelGreeks.
+    Invalid values (null, -1, -2, etc.) are filtered out.
     """
     if (
       ticker.sec_type == "OPT" and
       hasattr(ticker, "modelGreeks") and
       ticker.modelGreeks
     ):
-      return GreeksData(
-        delta=ticker.modelGreeks.delta,
-        gamma=ticker.modelGreeks.gamma,
-        vega=ticker.modelGreeks.vega,
-        theta=ticker.modelGreeks.theta,
-        implied_vol=ticker.modelGreeks.impliedVol,
-      )
+      delta = self._valid_value(ticker.modelGreeks.delta, float)
+      gamma = self._valid_value(ticker.modelGreeks.gamma, float)
+      vega = self._valid_value(ticker.modelGreeks.vega, float)
+      theta = self._valid_value(ticker.modelGreeks.theta, float)
+      implied_vol = self._valid_value(ticker.modelGreeks.impliedVol, float)
+      
+      # Only return GreeksData if at least one value is valid
+      if delta is not None or gamma is not None or vega is not None or theta is not None or implied_vol is not None:
+        return GreeksData(
+          delta=delta,
+          gamma=gamma,
+          vega=vega,
+          theta=theta,
+          implied_vol=implied_vol,
+        )
     return None
 
   async def get_tickers(
       self,
       contract_ids: list[int],
+      market_data_subscription_type: str = "realtime"
     ) -> list[dict]:
     """Get tickers for a list of contract IDs.
 
     Args:
         contract_ids: List of contract IDs to get tickers for.
+        market_data_subscription_type: Type of market data subscription ("realtime" or "delayed").
 
     Returns:
         List of tickers for the given contract IDs.
@@ -116,16 +128,34 @@ class MarketDataClient(IBClient):
     try:
       await self._connect()
       contracts = [Contract(conId=contract_id) for contract_id in contract_ids]
-      qualified_contracts = await self.ib.qualifyContractsAsync(*contracts)
+      qualified_contracts = await asyncio.wait_for(
+        self.ib.qualifyContractsAsync(*contracts),
+          timeout=self.config.ib_request_timeout,
+        )
+      
+      if qualified_contracts is None:
+        raise
 
-      # First attempt to get tickers
-      if self._is_market_open():
-        logger.debug("Market is open, requesting live market data")
-        self.ib.reqMarketDataType(LIVE)
+      # Determine market data type based on subscription type
+      if market_data_subscription_type.lower() == "realtime":
+        market_data_type = LIVE
       else:
-        logger.debug("Market is closed, requesting delayed market data")
-        self.ib.reqMarketDataType(DELAYED)
-      tickers = await self.ib.reqTickersAsync(*qualified_contracts)
+        market_data_type = DELAYED
+      
+      # Set market data type, switch to frozen if market is closed
+      # Use the first qualified contract to determine the exchange for market status check
+      if not self._is_market_open(qualified_contracts[0].primaryExchange):
+        logger.debug("Market is closed, requesting frozen market data")
+        self.ib.reqMarketDataType(market_data_type + 1)  # FROZEN or DELAYED_FROZEN
+      else:
+        logger.debug("Market is open, requesting live market data")
+        self.ib.reqMarketDataType(market_data_type)
+      tickers = await asyncio.wait_for(
+        self.ib.reqTickersAsync(*qualified_contracts),
+        timeout=self.config.ib_request_timeout,
+      )
+ 
+      #wait until all tickers have time field not None thwn we are finished
 
       # Process tickers
       result = self._process_tickers(tickers)
@@ -255,8 +285,12 @@ class MarketDataClient(IBClient):
           "symbol": row["symbol"],
           "sec_type": row["sec_type"],
           "last": row["last"] if pd.notna(row["last"]) else None,
+          "close": row["close"] if pd.notna(row["close"]) else None,
           "bid": row["bid"] if pd.notna(row["bid"]) else None,
           "ask": row["ask"] if pd.notna(row["ask"]) else None,
+          "high": row["high"] if pd.notna(row["high"]) else None,
+          "low": row["low"] if pd.notna(row["low"]) else None,
+          "volume": row["volume"] if pd.notna(row["volume"]) else None,
           "greeks": row["greeks"],
         }
         # Only add timestamp if it exists and is not None
@@ -318,7 +352,10 @@ class MarketDataClient(IBClient):
       
       # Qualify contract
       try:
-        qualified_contracts = await self.ib.qualifyContractsAsync(ib_contract)
+        qualified_contracts = await asyncio.wait_for(
+          self.ib.qualifyContractsAsync(ib_contract),
+          timeout=self.config.ib_request_timeout,
+        )
         if not qualified_contracts or not qualified_contracts[0]:
           raise ValueError(f"No contract found for {symbol} (type: {sec_type}, exchange: {exchange}, currency: {currency})")
         
@@ -407,7 +444,10 @@ class MarketDataClient(IBClient):
         ib_contract.currency = currency
       
       # Qualify contract
-      qualified_contracts = await self.ib.qualifyContractsAsync(ib_contract)
+      qualified_contracts = await asyncio.wait_for(
+        self.ib.qualifyContractsAsync(ib_contract),
+        timeout=self.config.ib_request_timeout,
+      )
       if not qualified_contracts:
         raise Exception(f"Could not qualify contract: {symbol}")
       
@@ -418,10 +458,8 @@ class MarketDataClient(IBClient):
       else:
         market_data_type = DELAYED
 
-      # Determine the exchange to check for market open status
-      primary_exchange = ib_contract.primaryExchange or ib_contract.exchange or None
       # Set market data type based on market status and subscription type
-      if not self._is_market_open(primary_exchange):
+      if not self._is_market_open(ib_contract.primaryExchange):
         market_data_type += 1 # make it FROZEN
       self.ib.reqMarketDataType(market_data_type)
       
@@ -432,7 +470,6 @@ class MarketDataClient(IBClient):
         snapshot=True,
         regulatorySnapshot=False
       )
-      
 
       """
       Wait for a ticker to stabilize:

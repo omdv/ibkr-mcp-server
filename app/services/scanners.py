@@ -1,10 +1,12 @@
 """Scanner operations."""
+import asyncio
 from defusedxml import ElementTree
 from ib_async.objects import ScannerSubscription, TagValue
 
 from .client import IBClient
 from app.core.setup_logging import logger
 from app.models.scanner import ScannerRequest
+
 
 class ScannerClient(IBClient):
   """Scanner operations.
@@ -20,7 +22,10 @@ class ScannerClient(IBClient):
     """Get scanner instrument codes."""
     try:
       await self._connect()
-      xml_parameters = await self.ib.reqScannerParametersAsync()
+      xml_parameters = await asyncio.wait_for(
+          self.ib.reqScannerParametersAsync(),
+          timeout=self.config.ib_request_timeout,
+        )
       tree = ElementTree.fromstring(xml_parameters)
       tags = [elem.text for elem in tree.findall(".//Instrument/type")]
     except Exception as e:
@@ -33,7 +38,10 @@ class ScannerClient(IBClient):
     """Get scanner location codes."""
     try:
       await self._connect()
-      xml_parameters = await self.ib.reqScannerParametersAsync()
+      xml_parameters = await asyncio.wait_for(
+          self.ib.reqScannerParametersAsync(),
+          timeout=self.config.ib_request_timeout,
+        )
       tree = ElementTree.fromstring(xml_parameters)
       tags = [elem.text for elem in tree.findall(".//Location/locationCode")]
     except Exception as e:
@@ -46,7 +54,10 @@ class ScannerClient(IBClient):
     """Get scanner filter codes."""
     try:
       await self._connect()
-      xml_parameters = await self.ib.reqScannerParametersAsync()
+      xml_parameters = await asyncio.wait_for(
+          self.ib.reqScannerParametersAsync(),
+          timeout=self.config.ib_request_timeout,
+        )
       tree = ElementTree.fromstring(xml_parameters)
       tags = [elem.text for elem in tree.findall(".//AbstractField/code")]
     except Exception as e:
@@ -59,7 +70,10 @@ class ScannerClient(IBClient):
     """Get scanner scan codes."""
     try:
       await self._connect()
-      xml_parameters = await self.ib.reqScannerParametersAsync()
+      xml_parameters = await asyncio.wait_for(
+          self.ib.reqScannerParametersAsync(),
+          timeout=self.config.ib_request_timeout,
+        )
       tree = ElementTree.fromstring(xml_parameters)
       tags = [elem.text for elem in tree.findall(".//scanCode")]
     except Exception as e:
@@ -90,7 +104,10 @@ class ScannerClient(IBClient):
         scanCode=scanner_request.scan_code,
       )
       active_sub = self.ib.reqScannerSubscription(sub_object, [], cleaned_tags)
-      scanner_data = await self.ib.reqScannerDataAsync(sub_object, [], cleaned_tags)
+      scanner_data = await asyncio.wait_for(
+          self.ib.reqScannerDataAsync(sub_object, [], cleaned_tags),
+          timeout=self.config.ib_request_timeout,
+        )
       self.ib.cancelScannerSubscription(active_sub)
 
       symbols = [row.contractDetails.contract.symbol for row in scanner_data]

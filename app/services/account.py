@@ -86,7 +86,10 @@ class AccountClient(IBClient):
     await self._connect()
     
     try:
-      positions = await self.ib.reqPositionsAsync()
+      positions = await asyncio.wait_for(
+          self.ib.reqPositionsAsync(),
+          timeout=self.config.ib_request_timeout,
+        )
       result = []
       
       for pos in positions:

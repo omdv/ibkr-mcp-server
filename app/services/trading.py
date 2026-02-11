@@ -96,7 +96,10 @@ class TradingClient(IBClient):
       ib_order = self._order_to_ib(order)
       
       # Qualify contract if needed
-      qualified_contracts = await self.ib.qualifyContractsAsync(ib_contract)
+      qualified_contracts = await asyncio.wait_for(
+          self.ib.qualifyContractsAsync(ib_contract),
+          timeout=self.config.ib_request_timeout,
+        )
       if not qualified_contracts:
         raise Exception(f"Could not qualify contract: {contract.symbol}")
       
@@ -167,7 +170,10 @@ class TradingClient(IBClient):
     await self._connect()
     
     try:
-      await self.ib.reqOpenOrdersAsync()
+      await asyncio.wait_for(
+          self.ib.reqOpenOrdersAsync(),
+          timeout=self.config.ib_request_timeout,
+        )
       trades = self.ib.openTrades()
       
       orders_data = []
