@@ -133,8 +133,8 @@ class MarketDataClient(IBClient):
           timeout=self.config.ib_request_timeout,
         )
       
-      if qualified_contracts is None:
-        raise
+      if qualified_contracts is None or len( qualified_contracts) == 0:
+        raise Exception( "No qualified contracts found")
 
       # Determine market data type based on subscription type
       if market_data_subscription_type.lower() == "realtime":
@@ -150,15 +150,94 @@ class MarketDataClient(IBClient):
       else:
         logger.debug("Market is open, requesting live market data")
         self.ib.reqMarketDataType(market_data_type)
-      tickers = await asyncio.wait_for(
-        self.ib.reqTickersAsync(*qualified_contracts),
-        timeout=self.config.ib_request_timeout,
-      )
- 
-      #wait until all tickers have time field not None thwn we are finished
 
-      # Process tickers
-      result = self._process_tickers(tickers)
+      # Request streaming data for all qualified contracts
+      tickers = [self.ib.reqMktData(contract) for contract in qualified_contracts]
+
+      try:
+          # Wait until all tickers have data and have stabilized (no changes for 2 cycles)
+          timeout = self.config.ib_request_timeout
+          interval = 0.5
+          loop = asyncio.get_event_loop()
+          start = loop.time()
+          
+          def _get_ticker_snapshot(ticker):
+              """Get a snapshot of all fields used in _process_tickers for change detection."""
+              # Extract greeks snapshot for options (delta, gamma, vega, theta, impliedVol)
+              greeks_snapshot = None
+              if hasattr(ticker, 'modelGreeks') and ticker.modelGreeks:
+                  greeks_snapshot = (
+                      ticker.modelGreeks.delta,
+                      ticker.modelGreeks.gamma,
+                      ticker.modelGreeks.vega,
+                      ticker.modelGreeks.theta,
+                      ticker.modelGreeks.impliedVol,
+                  )
+              return (
+                  ticker.time,
+                  ticker.last,
+                  ticker.close,
+                  ticker.bid,
+                  ticker.ask,
+                  ticker.high,
+                  ticker.low,
+                  ticker.volume,
+                  ticker.marketDataType,
+                  greeks_snapshot,
+              )
+          
+          # Track consecutive cycles with no changes
+          stable_cycles = 0
+          prev_snapshot = None
+          ready = False
+          
+          while not ready:
+              await asyncio.sleep(interval)
+              
+              # Check if all tickers have time
+              all_have_time = all(ticker.time is not None for ticker in tickers)
+              
+              if all_have_time:
+                  # Check for changes since last iteration
+                  curr_snapshot = tuple(_get_ticker_snapshot(t) for t in tickers)
+                  
+                  if prev_snapshot is not None and curr_snapshot == prev_snapshot:
+                      stable_cycles += 1
+                  else:
+                      stable_cycles = 0  # Reset if data changed
+                  
+                  prev_snapshot = curr_snapshot
+                  
+                  # Ready if data is stable for 2 consecutive cycles
+                  if stable_cycles >= 2:
+                      ready = True
+              else:
+                  # Reset stability tracking if any ticker loses time
+                  stable_cycles = 0
+                  prev_snapshot = None
+              
+              # Check timeout
+              elapsed = loop.time() - start
+              if elapsed >= timeout:
+                  logger.warning(f"Timeout waiting for market data after {elapsed:.1f}s for {len(tickers)} tickers")
+                  # Still proceed if we have data, even if not fully stable
+                  if all_have_time:
+                      logger.info(f"Proceeding with {len(tickers)} tickers despite timeout")
+                      ready = True
+                  else:
+                      break
+
+          # Process tickers
+          if ready:
+            result = self._process_tickers(tickers)
+
+      finally:
+          # Cancel all streaming subscriptions
+          for contract in qualified_contracts:
+              self.ib.cancelMktData(contract)
+
+          # Optionally clear tickers list if you no longer need it
+          tickers.clear()
 
       # Check if we got any greeks data (only for options contracts)
       options_contracts = [ticker for ticker in result if ticker.sec_type == "OPT"]
