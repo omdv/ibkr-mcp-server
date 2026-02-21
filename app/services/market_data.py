@@ -50,6 +50,27 @@ class MarketDataClient(IBClient):
     except (ValueError, TypeError):
       return None
 
+  def _get_ticker_fields(self, ticker) -> dict:
+      """Extract all comparable fields from a ticker object for change detection.
+      
+      Returns a dictionary of field names to values, excluding methods and private attributes.
+      """
+      fields = {}
+      for attr in dir(ticker):
+          # Skip private attributes, methods, and special attributes
+          if attr.startswith('_'):
+              continue
+          # Skip methods
+          if callable(getattr(ticker, attr, None)):
+              continue
+          # Get the value
+          value = getattr(ticker, attr)
+          # Skip event-like attributes (they have .wait() method)
+          if hasattr(value, 'wait') and hasattr(value, 'clear'):
+              continue
+          fields[attr] = value
+      return fields
+
   def _process_tickers(self, tickers: list[dict]) -> list[TickerData]:
     """Process tickers to extract required fields."""
     result = util.df(tickers)
@@ -162,29 +183,8 @@ class MarketDataClient(IBClient):
           start = loop.time()
           
           def _get_ticker_snapshot(ticker):
-              """Get a snapshot of all fields used in _process_tickers for change detection."""
-              # Extract greeks snapshot for options (delta, gamma, vega, theta, impliedVol)
-              greeks_snapshot = None
-              if hasattr(ticker, 'modelGreeks') and ticker.modelGreeks:
-                  greeks_snapshot = (
-                      ticker.modelGreeks.delta,
-                      ticker.modelGreeks.gamma,
-                      ticker.modelGreeks.vega,
-                      ticker.modelGreeks.theta,
-                      ticker.modelGreeks.impliedVol,
-                  )
-              return (
-                  ticker.time,
-                  ticker.last,
-                  ticker.close,
-                  ticker.bid,
-                  ticker.ask,
-                  ticker.high,
-                  ticker.low,
-                  ticker.volume,
-                  ticker.marketDataType,
-                  greeks_snapshot,
-              )
+              """Get a snapshot of all comparable fields for change detection."""
+              return self._get_ticker_fields(ticker)
           
           # Track consecutive cycles with no changes
           stable_cycles = 0
