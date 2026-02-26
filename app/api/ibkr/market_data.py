@@ -154,9 +154,10 @@ async def get_and_filter_options_chain(
   response_model=list[BarData],
 )
 async def get_historical_data(
-  symbol: str = Query(..., description="Symbol to get data for"),
-  sec_type: str = Query(default="STK", description="Security type"),
-  exchange: str = Query(default="SMART", description="Exchange"),
+  symbol: str | None = Query(default=None, description="Symbol to get data for (required if contract_id not provided)"),
+  contract_id: int | None = Query(default=None, description="Contract ID to get data for (required if symbol not provided)"),
+  sec_type: str = Query(default="STK", description="Security type (used with symbol)"),
+  exchange: str = Query(default="SMART", description="Exchange (used with symbol)"),
   currency: str = Query(default="USD", description="Currency"),
   duration: str = Query(default="1 D", description="Duration (e.g., '1 D', '1 W', '1 M')"),
   bar_size: str = Query(default="1 min", description="Bar size (e.g., '1 min', '5 mins', '1 hour', '1 day')"),
@@ -166,11 +167,13 @@ async def get_historical_data(
   """Get historical market data.
   
   Retrieve historical OHLCV bar data for a given contract.
+  Either symbol or contract_id must be provided.
   
   Args:
-    symbol: Symbol to get data for
-    sec_type: Security type (STK, OPT, FUT, etc.)
-    exchange: Exchange (default: SMART)
+    symbol: Symbol to get data for (required if contract_id not provided)
+    contract_id: Contract ID to get data for (required if symbol not provided)
+    sec_type: Security type (STK, OPT, FUT, etc.) - used with symbol
+    exchange: Exchange (default: SMART) - used with symbol
     currency: Currency (default: USD)
     duration: Duration string (e.g., '1 D', '1 W', '1 M', '1 Y')
     bar_size: Bar size (e.g., '1 min', '5 mins', '1 hour', '1 day')
@@ -180,7 +183,7 @@ async def get_historical_data(
   Returns:
     List of historical bar data
     
-  Example:
+  Example with symbol:
     >>> await get_historical_data(
     ...   symbol="AAPL",
     ...   sec_type="STK",
@@ -199,11 +202,26 @@ async def get_historical_data(
         "count": 450
       }
     ]
+  
+  Example with contract_id:
+    >>> await get_historical_data(
+    ...   contract_id=265598,
+    ...   duration="1 D",
+    ...   bar_size="5 mins"
+    ... )
   """
+  # Validate that either symbol or contract_id is provided
+  if not symbol and not contract_id:
+    return JSONResponse(
+      status_code=400,
+      content={"error": "Either 'symbol' or 'contract_id' must be provided"}
+    )
+  
   try:
-    logger.debug(f"Getting historical data for {symbol}")
+    logger.debug(f"Getting historical data for symbol={symbol}, contract_id={contract_id}")
     bars = await ib_interface.get_historical_data(
       symbol=symbol,
+      contract_id=contract_id,
       sec_type=sec_type,
       exchange=exchange,
       currency=currency,
