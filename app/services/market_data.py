@@ -92,9 +92,16 @@ class MarketDataClient(IBClient):
         close=self._valid_value(row.get("close"), float),
         bid=self._valid_value(row.get("bid"), float),
         ask=self._valid_value(row.get("ask"), float),
+        bid_size=self._valid_value(row.get("bidSize"), int),
+        ask_size=self._valid_value(row.get("askSize"), int),
         high=self._valid_value(row.get("high"), float),
         low=self._valid_value(row.get("low"), float),
         volume=self._valid_value(row.get("volume"), int),
+        mark=self._valid_value(row.get("mark"), float),
+        high_52_week=self._valid_value(row.get("high52"), float),
+        low_52_week=self._valid_value(row.get("low52"), float),
+        option_volume=self._valid_value(row.get("volume"), int),  # Generic tick 100
+        option_open_interest=self._valid_value(row.get("openInterest"), int),  # Generic tick 101
         greeks=row["greeks"],
         timestamp=row["timestamp"] or "",
         market_data_type=row["market_data_type"],
@@ -173,7 +180,9 @@ class MarketDataClient(IBClient):
         self.ib.reqMarketDataType(market_data_type)
 
       # Request streaming data for all qualified contracts
-      tickers = [self.ib.reqMktData(contract) for contract in qualified_contracts]
+      # Generic ticks: 221=mark price, 165=52-week high/low, 106=opt implied vol, 104=hist vol, 100=opt volume, 101=opt open interest
+      generic_tick_list = "221,165,106,104,100,101"
+      tickers = [self.ib.reqMktData(contract, genericTickList=generic_tick_list) for contract in qualified_contracts]
 
       try:
           # Wait until all tickers have data and have stabilized (no changes for 2 cycles)
@@ -367,9 +376,16 @@ class MarketDataClient(IBClient):
           "close": row["close"] if pd.notna(row["close"]) else None,
           "bid": row["bid"] if pd.notna(row["bid"]) else None,
           "ask": row["ask"] if pd.notna(row["ask"]) else None,
+          "bid_size": row["bid_size"] if pd.notna(row.get("bid_size")) else None,
+          "ask_size": row["ask_size"] if pd.notna(row.get("ask_size")) else None,
           "high": row["high"] if pd.notna(row["high"]) else None,
           "low": row["low"] if pd.notna(row["low"]) else None,
           "volume": row["volume"] if pd.notna(row["volume"]) else None,
+          "mark": row["mark"] if pd.notna(row.get("mark")) else None,
+          "high_52_week": row["high_52_week"] if pd.notna(row.get("high_52_week")) else None,
+          "low_52_week": row["low_52_week"] if pd.notna(row.get("low_52_week")) else None,
+          "option_volume": row["option_volume"] if pd.notna(row.get("option_volume")) else None,
+          "option_open_interest": row["option_open_interest"] if pd.notna(row.get("option_open_interest")) else None,
           "greeks": row["greeks"],
         }
         # Only add timestamp if it exists and is not None
@@ -390,7 +406,8 @@ class MarketDataClient(IBClient):
 
   async def get_historical_data(
       self,
-      symbol: str,
+      symbol: str | None = None,
+      contract_id: int | None = None,
       sec_type: str = "STK",
       exchange: str = "SMART",
       currency: str = "USD",
@@ -402,9 +419,10 @@ class MarketDataClient(IBClient):
     """Get historical market data.
     
     Args:
-      symbol: Symbol to get data for
-      sec_type: Security type (default: STK)
-      exchange: Exchange (default: SMART)
+      symbol: Symbol to get data for (required if contract_id not provided)
+      contract_id: Contract ID to get data for (required if symbol not provided)
+      sec_type: Security type (default: STK) - used with symbol
+      exchange: Exchange (default: SMART) - used with symbol
       currency: Currency (default: USD)
       duration: Duration string (e.g., '1 D', '1 W', '1 M')
       bar_size: Bar size (e.g., '1 min', '5 mins', '1 hour', '1 day')
@@ -420,12 +438,19 @@ class MarketDataClient(IBClient):
     await self._connect()
     
     try:
-      # Create contract
-      ib_contract = Contract()
-      ib_contract.symbol = symbol.upper()  # Ensure symbol is uppercase
-      ib_contract.secType = sec_type.upper()  # Ensure security type is uppercase
-      ib_contract.exchange = exchange.upper()  # Ensure exchange is uppercase
-      ib_contract.currency = currency.upper()  # Ensure currency is uppercase
+      # Create contract - either from contract_id or from symbol details
+      if contract_id:
+        # Use contract ID directly
+        ib_contract = Contract(conId=contract_id)
+        logger.debug(f"Creating contract from contract_id: {contract_id}")
+      else:
+        # Create contract from symbol details
+        ib_contract = Contract()
+        ib_contract.symbol = symbol.upper()  # Ensure symbol is uppercase
+        ib_contract.secType = sec_type.upper()  # Ensure security type is uppercase
+        ib_contract.exchange = exchange.upper()  # Ensure exchange is uppercase
+        ib_contract.currency = currency.upper()  # Ensure currency is uppercase
+        logger.debug(f"Creating contract from symbol: {symbol}")
       
       logger.debug(f"Qualifying contract: {ib_contract}")
       
@@ -436,13 +461,19 @@ class MarketDataClient(IBClient):
           timeout=self.config.ib_request_timeout,
         )
         if not qualified_contracts or not qualified_contracts[0]:
-          raise ValueError(f"No contract found for {symbol} (type: {sec_type}, exchange: {exchange}, currency: {currency})")
+          if contract_id:
+            raise ValueError(f"No contract found for contract_id {contract_id}")
+          else:
+            raise ValueError(f"No contract found for {symbol} (type: {sec_type}, exchange: {exchange}, currency: {currency})")
         
         ib_contract = qualified_contracts[0]
         logger.debug(f"Qualified contract: {ib_contract}")
         
       except Exception as qual_error:
-        error_msg = f"Failed to qualify contract {symbol} (type: {sec_type}, exchange: {exchange}): {str(qual_error)}"
+        if contract_id:
+          error_msg = f"Failed to qualify contract with ID {contract_id}: {str(qual_error)}"
+        else:
+          error_msg = f"Failed to qualify contract {symbol} (type: {sec_type}, exchange: {exchange}): {str(qual_error)}"
         logger.error(error_msg)
         raise ValueError(error_msg) from qual_error
       
@@ -485,7 +516,7 @@ class MarketDataClient(IBClient):
         raise Exception(error_msg) from hist_error
       
     except Exception as e:
-      logger.error(f"Historical data error for {symbol}: {str(e)}", exc_info=True)
+      logger.error(f"Historical data error for symbol={symbol}, contract_id={contract_id}: {str(e)}", exc_info=True)
       raise Exception(f"Historical data error: {str(e)}")
 
   async def get_market_data_snapshot(
