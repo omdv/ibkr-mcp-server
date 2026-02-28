@@ -414,13 +414,15 @@ class MarketDataClient(IBClient):
       duration: str = "1 D",
       bar_size: str = "1 min",
       what_to_show: str = "TRADES",
-      use_rth: bool = True
+      use_rth: bool = True,
+      end_date: str | None = None
     ) -> list[BarData]:
     """Get historical market data.
     
     Args:
-      symbol: Symbol to get data for (required if contract_id not provided)
-      contract_id: Contract ID to get data for (required if symbol not provided)
+      symbol: Symbol to get data for (optional if contract_id is provided)
+      contract_id: Contract ID to get data for (optional if symbol is provided).
+        Use this for better performance as it avoids symbol lookup.
       sec_type: Security type (default: STK) - used with symbol
       exchange: Exchange (default: SMART) - used with symbol
       currency: Currency (default: USD)
@@ -428,6 +430,15 @@ class MarketDataClient(IBClient):
       bar_size: Bar size (e.g., '1 min', '5 mins', '1 hour', '1 day')
       what_to_show: What to show (TRADES, MIDPOINT, BID, ASK)
       use_rth: Use regular trading hours only
+      end_date: End date/time for historical data (default: '' = now).
+        Supported formats:
+        - Date only: 'YYYYMMDD' (e.g., '20260223') - will be converted to 'YYYYMMDD 15:59:00 {timezone}'
+        - Date with time: 'YYYYMMDD HH:MM:SS' (e.g., '20260223 15:30:00')
+        - Date with time and timezone: 'YYYYMMDD HH:MM:SS Timezone' (e.g., '20260223 15:30:00 US/Eastern')
+        
+    Note:
+      Either 'symbol' or 'contract_id' must be provided, but not both.
+      Using 'contract_id' is recommended as it's more efficient.
       
     Returns:
       List of historical bar data
@@ -469,6 +480,17 @@ class MarketDataClient(IBClient):
         ib_contract = qualified_contracts[0]
         logger.debug(f"Qualified contract: {ib_contract}")
         
+        # Get timezone for the contract
+        contract_timezone = None
+        if end_date:
+          try:
+            contract_details = await self.ib.reqContractDetailsAsync(ib_contract)
+            if contract_details and contract_details[0]:
+              contract_timezone = contract_details[0].timeZoneId
+              logger.debug(f"Contract timezone: {contract_timezone}")
+          except Exception as tz_error:
+            logger.warning(f"Could not get contract timezone: {tz_error}")
+        
       except Exception as qual_error:
         if contract_id:
           error_msg = f"Failed to qualify contract with ID {contract_id}: {str(qual_error)}"
@@ -480,9 +502,27 @@ class MarketDataClient(IBClient):
       try:
         # Request historical data
         logger.debug(f"Requesting historical data for {ib_contract.symbol} ({ib_contract.secType})...")
+        
+        # Format end_date with timezone if provided
+        if end_date:
+          # If end_date already has time component (space or dash), use as-is
+          if ' ' in end_date or '-' in end_date:
+            end_date_time = end_date
+          else:
+            # Add time and timezone - assume end of trading day
+            if contract_timezone:
+              end_date_time = f"{end_date} 15:59:00 {contract_timezone}"
+            else:
+              # Fallback to EST if no timezone found
+              end_date_time = f"{end_date} 15:59:00 US/Eastern"
+        else:
+          end_date_time = ''
+        
+        logger.info(f"Historical request: endDateTime='{end_date_time}', durationStr='{duration}', barSizeSetting='{bar_size}'")
+        
         bars = await self.ib.reqHistoricalDataAsync(
           contract=ib_contract,
-          endDateTime='',
+          endDateTime=end_date_time,
           durationStr=duration,
           barSizeSetting=bar_size,
           whatToShow=what_to_show,

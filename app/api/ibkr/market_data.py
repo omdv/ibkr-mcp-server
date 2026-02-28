@@ -154,8 +154,8 @@ async def get_and_filter_options_chain(
   response_model=list[BarData],
 )
 async def get_historical_data(
-  symbol: str | None = Query(default=None, description="Symbol to get data for (required if contract_id not provided)"),
-  contract_id: int | None = Query(default=None, description="Contract ID to get data for (required if symbol not provided)"),
+  symbol: str | None = Query(default=None, description="Symbol to get data for (optional if contract_id is provided, recommended for better performance)"),
+  contract_id: int | None = Query(default=None, description="Contract ID to get data for (optional if symbol is provided, more efficient than symbol lookup)"),
   sec_type: str = Query(default="STK", description="Security type (used with symbol)"),
   exchange: str = Query(default="SMART", description="Exchange (used with symbol)"),
   currency: str = Query(default="USD", description="Currency"),
@@ -163,15 +163,17 @@ async def get_historical_data(
   bar_size: str = Query(default="1 min", description="Bar size (e.g., '1 min', '5 mins', '1 hour', '1 day')"),
   what_to_show: str = Query(default="TRADES", description="What to show (TRADES, MIDPOINT, BID, ASK)"),
   use_rth: bool = Query(default=True, description="Use regular trading hours only"),
+  end_date: str | None = Query(default=None, description="End date for historical data. Formats: 'YYYYMMDD' (converted to 'YYYYMMDD 15:59:00 {timezone}'), 'YYYYMMDD HH:MM:SS', or 'YYYYMMDD HH:MM:SS Timezone'"),
 ) -> list[BarData]:
   """Get historical market data.
   
   Retrieve historical OHLCV bar data for a given contract.
-  Either symbol or contract_id must be provided.
+  Either symbol or contract_id must be provided. Using contract_id is recommended
+  as it avoids an additional symbol lookup and is more efficient.
   
   Args:
-    symbol: Symbol to get data for (required if contract_id not provided)
-    contract_id: Contract ID to get data for (required if symbol not provided)
+    symbol: Symbol to get data for (optional if contract_id is provided)
+    contract_id: Contract ID to get data for (optional if symbol is provided)
     sec_type: Security type (STK, OPT, FUT, etc.) - used with symbol
     exchange: Exchange (default: SMART) - used with symbol
     currency: Currency (default: USD)
@@ -179,16 +181,20 @@ async def get_historical_data(
     bar_size: Bar size (e.g., '1 min', '5 mins', '1 hour', '1 day')
     what_to_show: What to show (TRADES, MIDPOINT, BID, ASK)
     use_rth: Use regular trading hours only
-    
+    end_date: End date/time for historical data.
+      - Date only: 'YYYYMMDD' (e.g., '20260223') - will be converted to 'YYYYMMDD 15:59:00 {timezone}'
+      - Date with time: 'YYYYMMDD HH:MM:SS' (e.g., '20260223 15:30:00')
+      - Date with time and timezone: 'YYYYMMDD HH:MM:SS Timezone' (e.g., '20260223 15:30:00 US/Eastern')
+      
   Returns:
     List of historical bar data
     
-  Example with symbol:
+  Example with contract_id (recommended):
     >>> await get_historical_data(
-    ...   symbol="AAPL",
-    ...   sec_type="STK",
+    ...   contract_id=265598,
     ...   duration="1 D",
-    ...   bar_size="5 mins"
+    ...   bar_size="5 mins",
+    ...   end_date="20260223"
     ... )
     [
       {
@@ -203,9 +209,10 @@ async def get_historical_data(
       }
     ]
   
-  Example with contract_id:
+  Example with symbol:
     >>> await get_historical_data(
-    ...   contract_id=265598,
+    ...   symbol="AAPL",
+    ...   sec_type="STK",
     ...   duration="1 D",
     ...   bar_size="5 mins"
     ... )
@@ -228,7 +235,8 @@ async def get_historical_data(
       duration=duration,
       bar_size=bar_size,
       what_to_show=what_to_show,
-      use_rth=use_rth
+      use_rth=use_rth,
+      end_date=end_date
     )
     return bars
   except Exception as e:

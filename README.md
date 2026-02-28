@@ -252,44 +252,60 @@ curl -X GET "http://localhost:8000/ibkr/market_data/snapshot?contract_id=1234567
 Get historical market data.
 
 **Query Parameters:**
-- `contract_id`: The IBKR contract ID
+- `contract_id`: (Optional) The IBKR contract ID. Recommended for better performance - avoids symbol lookup
+- `symbol`: (Optional) The ticker symbol. Required if contract_id not provided
+- `sec_type`: Security type (e.g., "STK", "OPT", "FUT") - used with symbol
+- `exchange": Exchange (e.g., "SMART", "ISLAND") - used with symbol
+- `currency": Currency (e.g., "USD")
 - `duration`: Data duration (e.g., "1 D", "1 W", "1 M", "1 Y")
 - `bar_size`: Bar size (e.g., "1 min", "5 mins", "1 hour", "1 day")
-- `what_to_show`: Data type (e.g., "TRADES", "MIDPOINT", "BID", "ASK")
+- `what_to_show": Data type (e.g., "TRADES", "MIDPOINT", "BID", "ASK")
 - `use_rth`: Use regular trading hours only (true/false)
+- `end_date`: (Optional) End date for historical data. Formats:
+  - Date only: `YYYYMMDD` (e.g., `20260223`) - converted to `YYYYMMDD 15:59:00 {timezone}`
+  - Date with time: `YYYYMMDD HH:MM:SS` (e.g., `20260223 15:30:00`)
+  - Full: `YYYYMMDD HH:MM:SS Timezone` (e.g., `20260223 15:30:00 US/Eastern`)
 
-**Example:**
+**Note:** Either `symbol` or `contract_id` must be provided. Using `contract_id` is recommended as it avoids symbol lookup and is more efficient.
+
+**Example with contract_id (recommended):**
 ```bash
-curl -X GET "http://localhost:8000/ibkr/market_data/historical?contract_id=12345678&duration=1%20D&bar_size=1%20min&what_to_show=TRADES&use_rth=true"
+curl -X GET "http://localhost:8000/ibkr/market_data/historical?contract_id=265598&duration=1%20D&bar_size=1%20min&what_to_show=TRADES&use_rth=true"
+```
+
+**Example with end_date:**
+```bash
+# Date only - will be converted to end of trading day with timezone
+curl -X GET "http://localhost:8000/ibkr/market_data/historical?contract_id=265598&duration=5%20D&bar_size=1%20day&end_date=20260220"
+
+# Date with time - used as-is
+curl -X GET "http://localhost:8000/ibkr/market_data/historical?contract_id=265598&duration=5%20D&bar_size=1%20day&end_date=20260220%2015:30:00"
 ```
 
 **Response:**
 ```json
-{
-  "symbol": "AAPL",
-  "bars": [
-    {
-      "time": "2025-10-05T09:30:00-04:00",
-      "open": 155.25,
-      "high": 155.40,
-      "low": 155.10,
-      "close": 155.30,
-      "volume": 2500,
-      "count": 125,
-      "wap": 155.25
-    },
-    {
-      "time": "2025-10-05T09:35:00-04:00",
-      "open": 155.30,
-      "high": 155.75,
-      "low": 155.25,
-      "close": 155.70,
-      "volume": 3200,
-      "count": 150,
-      "wap": 155.50
-    }
-  ]
-}
+[
+  {
+    "date": "2025-10-05T09:30:00",
+    "open": 155.25,
+    "high": 155.40,
+    "low": 155.10,
+    "close": 155.30,
+    "volume": 2500,
+    "wap": 155.25,
+    "count": 125
+  },
+  {
+    "date": "2025-10-05T09:35:00",
+    "open": 155.30,
+    "high": 155.75,
+    "low": 155.25,
+    "close": 155.70,
+    "volume": 3200,
+    "wap": 155.50,
+    "count": 150
+  }
+]
 ```
 
 #### `GET /ibkr/tickers`
