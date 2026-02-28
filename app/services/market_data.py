@@ -139,14 +139,23 @@ class MarketDataClient(IBClient):
     return None
 
   async def get_tickers(
-      self,
-      contract_ids: list[int],
-      market_data_subscription_type: str = "realtime"
-    ) -> list[dict]:
-    """Get tickers for a list of contract IDs.
+    self,
+    symbol: str,
+    sec_type: str,
+    exchange: str,
+    currency: str,
+    contract_ids: list[int] | int | None,
+    market_data_subscription_type: str = "realtime"
+  ) -> list[dict]:
+    """Get tickers for a list of contract IDs, single contract ID, or symbol.
 
     Args:
-        contract_ids: List of contract IDs to get tickers for.
+        contract_ids: List of contract IDs, a single contract ID, or None.
+        symbol: Symbol to get data for (optional if contract_ids is provided).
+          If provided, will be resolved to contract_id.
+        sec_type: Security type (used with symbol, default: STK)
+        exchange: Exchange (used with symbol, default: SMART)
+        currency: Currency (used with symbol, default: USD)
         market_data_subscription_type: Type of market data subscription ("realtime" or "delayed").
 
     Returns:
@@ -155,7 +164,12 @@ class MarketDataClient(IBClient):
     """
     try:
       await self._connect()
-      contracts = [Contract(conId=contract_id) for contract_id in contract_ids]
+      if contract_ids is None:
+        # Create contract from symbol details
+        contracts = [Contract(symbol = symbol, secType = sec_type, exchange = exchange, currency = currency)]
+      else:
+        contracts = [Contract(conId=contract_id) for contract_id in contract_ids]
+        
       qualified_contracts = await asyncio.wait_for(
         self.ib.qualifyContractsAsync(*contracts),
           timeout=self.config.ib_request_timeout,
@@ -169,16 +183,8 @@ class MarketDataClient(IBClient):
         market_data_type = LIVE
       else:
         market_data_type = DELAYED
+      self.ib.reqMarketDataType(market_data_type)
       
-      # Set market data type, switch to frozen if market is closed
-      # Use the first qualified contract to determine the exchange for market status check
-      if not self._is_market_open(qualified_contracts[0].primaryExchange):
-        logger.debug("Market is closed, requesting frozen market data")
-        self.ib.reqMarketDataType(market_data_type + 1)  # FROZEN or DELAYED_FROZEN
-      else:
-        logger.debug("Market is open, requesting live market data")
-        self.ib.reqMarketDataType(market_data_type)
-
       # Request streaming data for all qualified contracts
       # Generic ticks: 221=mark price, 165=52-week high/low, 106=opt implied vol, 104=hist vol, 100=opt volume, 101=opt open interest
       generic_tick_list = "221,165,106,104,100,101"
@@ -248,11 +254,11 @@ class MarketDataClient(IBClient):
           # Optionally clear tickers list if you no longer need it
           tickers.clear()
 
-      # Check if we got any greeks data (only for options contracts)
-      options_contracts = [ticker for ticker in result if ticker.sec_type == "OPT"]
-      has_greeks = False
-      if options_contracts:
-        has_greeks = any(ticker.greeks for ticker in options_contracts)
+      # # Check if we got any greeks data (only for options contracts)
+      # options_contracts = [ticker for ticker in result if ticker.sec_type == "OPT"]
+      # has_greeks = False
+      # if options_contracts:
+      #   has_greeks = any(ticker.greeks for ticker in options_contracts)
 
       # # Only restart if we have options contracts but no greeks data
       # if options_contracts and not has_greeks:
@@ -278,7 +284,7 @@ class MarketDataClient(IBClient):
       #   if options_contracts and not has_greeks:
       #     logger.warning("Still no greeks data after gateway restart")
 
-      result_dict = [ticker.dict() for ticker in result]
+      result_dict = [ticker.model_dump() for ticker in result]
 
     except Exception as e:
       logger.error("Error getting tickers: {}", str(e))
@@ -328,7 +334,13 @@ class MarketDataClient(IBClient):
       options_chain_df = pd.DataFrame(options_chain)
 
       # Get market data for all options
-      market_data = await self.get_tickers(options_chain_df["conId"].tolist())
+      market_data = await self.get_tickers(
+        symbol=underlying_symbol,
+        sec_type=underlying_sec_type,
+        exchange="",
+        currency="",
+        contract_ids=options_chain_df["conId"].tolist()
+      )
 
       if not market_data:
         logger.warning("No market data available for options")
@@ -398,7 +410,7 @@ class MarketDataClient(IBClient):
         filtered_tickers.append(ticker_data)
 
       # Return as list of dictionaries
-      return [ticker.dict() for ticker in filtered_tickers]
+      return [ticker.model_dump() for ticker in filtered_tickers]
 
     except Exception as e:
       logger.error("Error filtering options: {}", str(e))

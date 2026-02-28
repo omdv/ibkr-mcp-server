@@ -10,6 +10,9 @@ from app.models import TickerData, BarData, TickData
 CONTRACT_IDS_QUERY = Query(default=None, description="List of contract IDs")
 FILTERS_QUERY = Query(default=None, description="Filters as JSON string")
 CRITERIA_QUERY = Query(default=None, description="Criteria as JSON string")
+SEC_TYPE_QUERY = Query(default="STK", description="Security type (used with symbol)")
+EXCHANGE_QUERY = Query(default="SMART", description="Exchange (used with symbol)")
+CURRENCY_QUERY = Query(default="USD", description="Currency")
 
 @ibkr_router.get(
   "/tickers",
@@ -17,44 +20,79 @@ CRITERIA_QUERY = Query(default=None, description="Criteria as JSON string")
   response_model=list[TickerData],
 )
 async def get_tickers(
-  contract_ids: list[int] | None = CONTRACT_IDS_QUERY,
+  contract_ids: list[int] | int | None = CONTRACT_IDS_QUERY,
+  symbol: str | None = Query(default=None, description="Symbol to get data for (optional if contract_ids is provided, recommended for better performance)"),
+  sec_type: str = SEC_TYPE_QUERY,
+  exchange: str = EXCHANGE_QUERY,
+  currency: str = CURRENCY_QUERY,
   market_data_subscription_type: str = "realtime" 
 ) -> list[TickerData]:
-  """Get tickers for a list of contract IDs.
+  """Get tickers for a list of contract IDs or symbol.
 
-  This function queries the IB TWS to get the tickers for a list of contract IDs.
-  It will return the last price and symbol, and greeks (if applicable).
+  This function queries the IB TWS to get the tickers for a list of contract IDs
+  or a single symbol. If symbol parameters are provided, they will be used to
+  resolve the contract ID first.
 
   Args:
-    contract_ids (list[int]): A list of contract IDs to get tickers for.
+    contract_ids: A list of contract IDs, a single contract ID, or None.
+    symbol: Symbol to get data for (optional if contract_ids is provided)
+    sec_type: Security type (used with symbol, default: STK)
+    exchange: Exchange (used with symbol, default: SMART)
+    currency: Currency (used with symbol, default: USD)
+    market_data_subscription_type: Type of market data subscription (realtime or delayed, default: realtime)
 
   Returns:
-    List[TickerData]: A list of ticker dictionaries for the contract IDs.
+    List[TickerData]: A list of ticker data for the contract IDs.
 
   Example:
-    await get_tickers_details([123456, 789012])
+    >>> curl -X GET "http://localhost:8000/ibkr/tickers?symbol=AAPL&market_data_subscription_type=delayed"
     [
       {
+        "contract_id": 265598,
         "symbol": "AAPL",
-        "last": 150.75,
-        "greeks": {
-          "delta": 0.5,
-        },
-      },
-      {
-        "symbol": "MSFT",
-        "last": 210.22,
+        "sec_type": "STK",
+        "last": 263.55,
+        "close": 272.95,
+        "bid": null,
+        "ask": null,
+        "bid_size": null,
+        "ask_size": null,
+        "high": 272.81,
+        "low": 262.89,
+        "volume": 724566,
+        "mark": null,
+        "high_52_week": null,
+        "low_52_week": null,
+        "option_volume": 724566,
+        "option_open_interest": null,
         "greeks": null,
-      },
+        "timestamp": "2026-02-28T12:08:47.821499+00:00",
+        "market_data_type": 3
+      }
     ]
 
   """
+  # Validate that either symbol or contract_ids is provided
+  if not symbol and not contract_ids:
+    return JSONResponse(
+      status_code=400,
+      content={"error": "Either 'symbol' or 'contract_ids' must be provided"}
+    )
+  
   try:
     logger.debug(
-      "Getting tickers for contract IDs: {contract_ids}",
+      "Getting tickers for contract_ids={contract_ids}, symbol={symbol}",
       contract_ids=contract_ids,
+      symbol=symbol,
     )
-    tickers = await ib_interface.get_tickers(contract_ids, market_data_subscription_type)
+    tickers = await ib_interface.get_tickers(
+      contract_ids=contract_ids,
+      symbol=symbol,
+      sec_type=sec_type,
+      exchange=exchange,
+      currency=currency,
+      market_data_subscription_type=market_data_subscription_type
+    )
   except Exception as e:
     logger.error("Error in get_tickers: {!s}", str(e))
     return []
@@ -156,9 +194,9 @@ async def get_and_filter_options_chain(
 async def get_historical_data(
   symbol: str | None = Query(default=None, description="Symbol to get data for (optional if contract_id is provided, recommended for better performance)"),
   contract_id: int | None = Query(default=None, description="Contract ID to get data for (optional if symbol is provided, more efficient than symbol lookup)"),
-  sec_type: str = Query(default="STK", description="Security type (used with symbol)"),
-  exchange: str = Query(default="SMART", description="Exchange (used with symbol)"),
-  currency: str = Query(default="USD", description="Currency"),
+  sec_type: str = SEC_TYPE_QUERY,
+  exchange: str = EXCHANGE_QUERY,
+  currency: str = CURRENCY_QUERY,
   duration: str = Query(default="1 D", description="Duration (e.g., '1 D', '1 W', '1 M')"),
   bar_size: str = Query(default="1 min", description="Bar size (e.g., '1 min', '5 mins', '1 hour', '1 day')"),
   what_to_show: str = Query(default="TRADES", description="What to show (TRADES, MIDPOINT, BID, ASK)"),

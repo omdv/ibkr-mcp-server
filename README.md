@@ -309,111 +309,47 @@ curl -X GET "http://localhost:8000/ibkr/market_data/historical?contract_id=26559
 ```
 
 #### `GET /ibkr/tickers`
-Get real-time ticker data for multiple contracts.
+Get real-time ticker data for a symbol or contract IDs.
 
 **Query Parameters:**
-- `contract_ids`: List of IBKR contract IDs
+- `symbol`: Symbol to get data for (e.g., AAPL)
+- `contract_ids`: (Optional) List of IBKR contract IDs
+- `sec_type`: Security type (e.g., STK, OPT, FUT) - used with symbol (default: STK)
+- `exchange`: Exchange (e.g., SMART, ISLAND) - used with symbol (default: SMART)
+- `currency`: Currency (e.g., USD) - used with symbol (default: USD)
+- `market_data_subscription_type`: Type of market data subscription (realtime or delayed, default: realtime)
 
-**Example - Multiple Contracts:**
+**Note:** Either `symbol` or `contract_ids` must be provided. Using `symbol` is recommended for better performance.
+
+**Example with symbol:**
 ```bash
-curl -X GET "http://localhost:8000/ibkr/tickers?contract_ids=814588219&contract_ids=814233597&contract_ids=817259062" -H "Accept: application/json"
+curl -X GET "http://localhost:8000/ibkr/tickers?symbol=AAPL&market_data_subscription_type=delayed" -H "Accept: application/json"
 ```
 
 **Response:**
 ```json
 [
   {
-    "con_id": 814588219,
-    "symbol": "CCJ",
-    "sec_type": "OPT",
-    "exchange": "SMART",
-    "currency": "USD",
-    "local_symbol": "CCJ   270115C00120000",
-    "friendly_symbol": "CCJ Jan15'27 120.0 CALL",
-    "last": 8.35,
-    "last_size": 10,
-    "bid": 8.3,
-    "bid_size": 50,
-    "ask": 8.45,
-    "ask_size": 20,
-    "volume": 1250,
-    "open": 7.85,
-    "high": 8.55,
-    "low": 7.65,
-    "close": 7.82,
-    "vwap": 8.12,
-    "tick_value": 10.0,
-    "tick_size": 0.01,
-    "strikes": null,
-    "gamma": 0.042,
-    "delta": 0.55,
-    "theta": -0.12,
-    "vega": 0.28,
-    "rho": 0.05,
-    "dte": 345,
-    "time": "2025-02-06T10:30:00Z"
-  },
-  {
-    "con_id": 814233597,
-    "symbol": "CCJ",
-    "sec_type": "OPT",
-    "exchange": "SMART",
-    "currency": "USD",
-    "local_symbol": "CCJ   280121C00120000",
-    "friendly_symbol": "CCJ Jan21'28 120.0 CALL",
-    "last": 12.85,
-    "last_size": 5,
-    "bid": 12.75,
-    "bid_size": 30,
-    "ask": 12.95,
-    "ask_size": 15,
-    "volume": 450,
-    "open": 11.95,
-    "high": 13.20,
-    "low": 11.65,
-    "close": 11.82,
-    "vwap": 12.35,
-    "tick_value": 10.0,
-    "tick_size": 0.01,
-    "strikes": null,
-    "gamma": 0.028,
-    "delta": 0.62,
-    "theta": -0.08,
-    "vega": 0.45,
-    "rho": 0.08,
-    "dte": 1125,
-    "time": "2025-02-06T10:30:00Z"
-  },
-  {
-    "con_id": 817259062,
-    "symbol": "CCJ",
-    "sec_type": "OPT",
-    "exchange": "SMART",
-    "currency": "USD",
-    "local_symbol": "CCJ   270115C00130000",
-    "friendly_symbol": "CCJ Jan15'27 130.0 CALL",
-    "last": 4.15,
-    "last_size": 25,
-    "bid": 4.05,
-    "bid_size": 100,
-    "ask": 4.25,
-    "ask_size": 75,
-    "volume": 3200,
-    "open": 3.85,
-    "high": 4.45,
-    "low": 3.65,
-    "close": 3.82,
-    "vwap": 4.02,
-    "tick_value": 10.0,
-    "tick_size": 0.01,
-    "strikes": null,
-    "gamma": 0.038,
-    "delta": 0.42,
-    "theta": -0.10,
-    "vega": 0.22,
-    "rho": 0.03,
-    "dte": 345,
-    "time": "2025-02-06T10:30:00Z"
+    "contract_id": 265598,
+    "symbol": "AAPL",
+    "sec_type": "STK",
+    "last": 263.55,
+    "close": 272.95,
+    "bid": null,
+    "ask": null,
+    "bid_size": null,
+    "ask_size": null,
+    "high": 272.81,
+    "low": 262.89,
+    "volume": 724566,
+    "mark": null,
+    "high_52_week": null,
+    "low_52_week": null,
+    "option_volume": 724566,
+    "option_open_interest": null,
+    "greeks": null,
+    "timestamp": "2026-02-28T12:08:47.821499+00:00",
+    "market_data_type": 3
   }
 ]
 ```
