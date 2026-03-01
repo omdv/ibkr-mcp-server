@@ -106,3 +106,48 @@ Managed via `pyproject.toml` and installed with uv:
 - docker
 - pandas
 - pydantic-settings
+
+## Testing Framework
+
+This project uses **pytest** for API testing.
+
+### Running Tests
+
+```bash
+# Install test dependencies
+uv sync --group dev
+
+# Run all tests
+uv run pytest tests/test_api.py -v
+
+# Run specific test categories
+uv run pytest tests/test_api.py -v -m gateway
+uv run pytest tests/test_api.py -v -m connection
+uv run pytest tests/test_api.py -v -m account
+uv run pytest tests/test_api.py -v -m market_data
+uv run pytest tests/test_api.py -v -m contracts
+uv run pytest tests/test_api.py -v -m scanners
+```
+
+### Test Categories
+
+Tests are organized by marker:
+- `@pytest.mark.gateway` - Gateway endpoints
+- `@pytest.mark.connection` - Connection endpoints
+- `@pytest.mark.account` - Account endpoints
+- `@pytest.mark.market_data` - Market data endpoints
+- `@pytest.mark.contracts` - Contract endpoints
+- `@pytest.mark.scanners` - Scanner endpoints
+- `@pytest.mark.trading` - Trading endpoints
+
+### Adding Tests
+
+Add new tests in `tests/test_api.py`:
+
+```python
+@pytest.mark.market_data
+def test_new_endpoint(self, session, base_url):
+    """Test new endpoint."""
+    response = session.get(f"{base_url}/new/endpoint")
+    assert response.status_code == 200
+```
