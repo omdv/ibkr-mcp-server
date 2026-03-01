@@ -179,7 +179,7 @@ class MarketDataClient(IBClient):
     exchange: str,
     currency: str,
     contract_ids: list[int] | int | None,
-    market_data_subscription_type: str = "realtime"
+    subscription_type: str = "realtime"
   ) -> list[dict]:
     """Get tickers for a list of contract IDs, single contract ID, or symbol.
 
@@ -190,7 +190,7 @@ class MarketDataClient(IBClient):
         sec_type: Security type (used with symbol, default: STK)
         exchange: Exchange (used with symbol, default: SMART)
         currency: Currency (used with symbol, default: USD)
-        market_data_subscription_type: Type of market data subscription ("realtime" or "delayed").
+        subscription_type: Type of market data subscription ("realtime" or "delayed").
 
     Returns:
         List of tickers for the given contract IDs.
@@ -213,7 +213,7 @@ class MarketDataClient(IBClient):
         raise Exception( "No qualified contracts found")
 
       # Determine market data type based on subscription type
-      if market_data_subscription_type.lower() == "realtime":
+      if subscription_type.lower() == "realtime":
         market_data_type = LIVE
       else:
         market_data_type = DELAYED

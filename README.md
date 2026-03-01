@@ -284,13 +284,13 @@ Get real-time market data for a symbol or contract IDs.
 - `sec_type`: Security type (e.g., STK, OPT, FUT) - used with symbol (default: STK)
 - `exchange`: Exchange (e.g., SMART, ISLAND) - used with symbol (default: SMART)
 - `currency`: Currency (e.g., USD) - used with symbol (default: USD)
-- `market_data_subscription_type`: Type of market data subscription (realtime or delayed, default: realtime)
+- `subscription_type`: Type of market data subscription (realtime or delayed, default: realtime)
 
 **Note:** Either `symbol` or `contract_ids` must be provided. Using `symbol` is recommended for better performance.
 
 **Example with symbol:**
 ```bash
-curl -X GET "http://localhost:8000/ibkr/market_data?symbol=AAPL&market_data_subscription_type=delayed" -H "Accept: application/json"
+curl -X GET "http://localhost:8000/ibkr/market_data?symbol=AAPL&subscription_type=delayed" -H "Accept: application/json"
 ```
 
 **Response:**

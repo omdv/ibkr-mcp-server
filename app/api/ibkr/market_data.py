@@ -25,7 +25,7 @@ async def get_market_data(
   sec_type: str = SEC_TYPE_QUERY,
   exchange: str = EXCHANGE_QUERY,
   currency: str = CURRENCY_QUERY,
-  market_data_subscription_type: str = "realtime" 
+  subscription_type: str = "realtime" 
 ) -> list[MarketData]:
   """Get market data for a list of contract IDs or symbol.
 
@@ -39,13 +39,13 @@ async def get_market_data(
     sec_type: Security type (used with symbol, default: STK)
     exchange: Exchange (used with symbol, default: SMART)
     currency: Currency (used with symbol, default: USD)
-    market_data_subscription_type: Type of market data subscription (realtime or delayed, default: realtime)
+    subscription_type: Type of market data subscription (realtime or delayed, default: realtime)
 
   Returns:
     List[MarketData]: A list of market data for the contract IDs.
 
   Example:
-    >>> curl -X GET "http://localhost:8000/ibkr/market_data?symbol=AAPL&market_data_subscription_type=delayed"
+    >>> curl -X GET "http://localhost:8000/ibkr/market_data?symbol=AAPL&subscription_type=delayed"
     [
       {
         "contract_id": 265598,
@@ -91,7 +91,7 @@ async def get_market_data(
       sec_type=sec_type,
       exchange=exchange,
       currency=currency,
-      market_data_subscription_type=market_data_subscription_type
+      subscription_type=subscription_type
     )
   except Exception as e:
     logger.error("Error in get_market_data: {!s}", str(e))
