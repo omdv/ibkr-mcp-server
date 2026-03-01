@@ -832,6 +832,67 @@ curl -X POST "http://localhost:8000/ibkr/connection/reconnect"
 - **Port conflicts**: Check if port 8000 is available
 - **IBKR connection**: Verify credentials and TWS/Gateway setup
 
+## Debugging
+
+### Viewing Application Logs
+
+The application logs to both console and file (when enabled). To enable file logging, add to your `.env` file:
+
+```bash
+ENABLE_FILE_LOGGING=true
+LOG_FILE_PATH=logs/app.log
+LOG_LEVEL=INFO
+```
+
+View logs in real-time:
+
+```bash
+# Watch the log file
+tail -f logs/app.log
+
+# Or use the log file path directly
+cat logs/app.log
+```
+
+### Using curl to Test Endpoints
+
+Start the server:
+
+```bash
+./run.sh
+```
+
+Then test with curl commands:
+
+```bash
+# Check server is running
+curl http://localhost:8000/
+
+# Check IBKR Gateway status
+curl http://localhost:8000/gateway/status
+
+# Get Gateway container logs
+curl http://localhost:8000/gateway/logs?tail=50
+
+# Check connection status
+curl http://localhost:8000/ibkr/connection/status
+
+# Get account summary
+curl http://localhost:8000/ibkr/account/summary
+
+# Get positions
+curl http://localhost:8000/ibkr/account/positions
+
+# Get market data snapshot (example with AAPL)
+curl "http://localhost:8000/ibkr/market_data/snapshot?symbol=AAPL&sec_type=STK"
+```
+
+### API Documentation
+
+Full API documentation is available at: http://localhost:8000/docs
+
+MCP server is available at: http://localhost:8000/mcp
+
 ## License
 
 MIT License
