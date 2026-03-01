@@ -82,7 +82,7 @@ class TestMarketData:
     """Tests for Market Data endpoints."""
     
     @pytest.mark.parametrize("symbol", ["AAPL", "MSFT", "GOOGL"])
-    def test_market_data_snapshot(self, session, base_url, symbol):
+    def test_market_data(self, session, base_url, symbol):
         """Test GET /ibkr/market_data."""
         response = session.get(
             f"{base_url}/ibkr/market_data",
