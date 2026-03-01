@@ -83,10 +83,10 @@ class TestMarketData:
     
     @pytest.mark.parametrize("symbol", ["AAPL", "MSFT", "GOOGL"])
     def test_market_data_snapshot(self, session, base_url, symbol):
-        """Test GET /ibkr/market_data/snapshot."""
+        """Test GET /ibkr/market_data."""
         response = session.get(
-            f"{base_url}/ibkr/market_data/snapshot",
-            params={"symbol": symbol, "sec_type": "STK"}
+            f"{base_url}/ibkr/market_data",
+            params={"symbol": symbol}
         )
         # May return 200 or error depending on subscription
         assert response.status_code in [200, 500]
@@ -150,8 +150,9 @@ class TestScanners:
         response = session.get(
             f"{base_url}/ibkr/scanner/results",
             params={
-                "instrument": "STK",
-                "location_code": "STK.US.MAJOR"
+                "instrument_code": "STK",
+                "location_code": "STK.US",
+                "scan_code": "MOST_ACTIVE"
             }
         )
         assert response.status_code in [200, 500]
