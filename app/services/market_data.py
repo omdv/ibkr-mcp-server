@@ -21,6 +21,40 @@ class MarketDataClient(IBClient):
     self.contract_client = ContractClient()
     self.contract_client.ib = self.ib
 
+  def _get_session_close(self, liquid_hours: str, target_date: str) -> str | None:
+    """Parse the liquidHours string to get the closing time for a target date.
+    
+    Args:
+      liquid_hours: The liquidHours string from contract details (e.g., "20250220:0900-1600;20250221:CLOSED")
+      target_date: The target date in YYYYMMDD format
+      
+    Returns:
+      The closing time as HHMM string (e.g., "1600"), or None if the market is closed that day
+    """
+    if not liquid_hours:
+      return None
+      
+    sessions = liquid_hours.split(';')
+    
+    for session in sessions:
+      if not session:
+        continue
+        
+      # Check if this session matches the target date
+      if session.startswith(target_date):
+        # Check if market is closed
+        if "CLOSED" in session:
+          return None
+        
+        # Extract the hours part (format: "YYYYMMDD:HHMM-HHMM")
+        if ':' in session:
+          _, hours = session.split(':')
+          if '-' in hours:
+            _, close_time = hours.split('-')
+            return close_time.strip()
+    
+    return None
+
   def _is_market_open(self, exchange : str = 'NYSE') -> bool:
       """Check if the market is open."""
       try:
@@ -444,9 +478,13 @@ class MarketDataClient(IBClient):
       use_rth: Use regular trading hours only
       end_date: End date/time for historical data (default: '' = now).
         Supported formats:
-        - Date only: 'YYYYMMDD' (e.g., '20260223') - will be converted to 'YYYYMMDD 15:59:00 {timezone}'
+        - Date only: 'YYYYMMDD' (e.g., '20260223') - will be converted to 'YYYYMMDD HH:MM:SS {timezone}' using the contract's liquidHours
         - Date with time: 'YYYYMMDD HH:MM:SS' (e.g., '20260223 15:30:00')
         - Date with time and timezone: 'YYYYMMDD HH:MM:SS Timezone' (e.g., '20260223 15:30:00 US/Eastern')
+        
+      Note:
+        When using date-only format, the closing time is determined from the contract's
+        liquidHours field. If liquidHours is not available, defaults to 15:59:00 US/Eastern.
         
     Note:
       Either 'symbol' or 'contract_id' must be provided, but not both.
@@ -492,14 +530,16 @@ class MarketDataClient(IBClient):
         ib_contract = qualified_contracts[0]
         logger.debug(f"Qualified contract: {ib_contract}")
         
-        # Get timezone for the contract
+        # Get timezone and liquid hours for the contract
         contract_timezone = None
+        liquid_hours = None
         if end_date:
           try:
             contract_details = await self.ib.reqContractDetailsAsync(ib_contract)
             if contract_details and contract_details[0]:
               contract_timezone = contract_details[0].timeZoneId
-              logger.debug(f"Contract timezone: {contract_timezone}")
+              liquid_hours = contract_details[0].liquidHours
+              logger.debug(f"Contract timezone: {contract_timezone}, liquidHours: {liquid_hours}")
           except Exception as tz_error:
             logger.warning(f"Could not get contract timezone: {tz_error}")
         
@@ -521,12 +561,23 @@ class MarketDataClient(IBClient):
           if ' ' in end_date or '-' in end_date:
             end_date_time = end_date
           else:
-            # Add time and timezone - assume end of trading day
-            if contract_timezone:
-              end_date_time = f"{end_date} 15:59:00 {contract_timezone}"
+            # Add time and timezone - get closing time from liquidHours
+            close_time = self._get_session_close(liquid_hours, end_date) if liquid_hours else None
+            
+            if close_time:
+              # Format: HHMM -> HH:MM:SS
+              if len(close_time) == 4:
+                close_time = f"{close_time[:2]}:{close_time[2:]}:00"
+              if contract_timezone:
+                end_date_time = f"{end_date} {close_time} {contract_timezone}"
+              else:
+                end_date_time = f"{end_date} {close_time} US/Eastern"
             else:
-              # Fallback to EST if no timezone found
-              end_date_time = f"{end_date} 15:59:00 US/Eastern"
+              # Fallback to default close time if liquidHours not available
+              if contract_timezone:
+                end_date_time = f"{end_date} 15:59:00 {contract_timezone}"
+              else:
+                end_date_time = f"{end_date} 15:59:00 US/Eastern"
         else:
           end_date_time = ''
         
