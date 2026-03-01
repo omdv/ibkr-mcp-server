@@ -11,3 +11,6 @@ wheels/
 
 # .env files with sensitive data
 .env
+
+# Log files
+logs/
