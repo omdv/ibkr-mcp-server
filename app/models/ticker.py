@@ -1,4 +1,4 @@
-"""Pydantic models for ticker data."""
+"""Pydantic models for market data."""
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -12,8 +12,8 @@ class GreeksData(BaseModel):
   implied_vol: float | None = Field(None, description="Implied volatility")
 
 
-class TickerData(BaseModel):
-  """Model for ticker data."""
+class MarketData(BaseModel):
+  """Model for market data."""
 
   contract_id: int = Field(..., description="Contract ID")
   symbol: str = Field(..., description="Symbol")

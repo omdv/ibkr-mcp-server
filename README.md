@@ -7,7 +7,7 @@ A FastAPI application that provides an MCP (Model Context Protocol) server for I
 - **Docker Management**: Automatic IBKR Gateway container lifecycle
 - **Account Management**: Account summary, positions, and account values
 - **Trading Operations**: Place orders, cancel orders, manage open orders
-- **Market Data**: Real-time snapshots, historical data, tickers, options chains
+- **Market Data**: Real-time market data, historical data, options chains
 - **Contract Management**: Contract details, options chains, scanners
 - **Connection Management**: Connection status and reconnection
 - **MCP Integration**: All API endpoints automatically exposed as MCP tools via FastMCP
@@ -215,39 +215,6 @@ curl -X DELETE "http://localhost:8000/ibkr/orders/987654321"
 
 ### Market Data
 
-#### `GET /ibkr/market_data/snapshot`
-Get real-time market data snapshot for a contract.
-
-**Query Parameters:**
-- `contract_id`: The IBKR contract ID
-- `symbol`: Symbol (alternative to contract_id)
-- `sec_type`: Security type (e.g., STK, OPT, FUT)
-- `exchange`: Exchange (e.g., SMART, ISLAND)
-- `currency`: Currency (e.g., USD)
-
-**Example:**
-```bash
-curl -X GET "http://localhost:8000/ibkr/market_data/snapshot?contract_id=12345678"
-```
-
-**Response:**
-```json
-{
-  "symbol": "AAPL",
-  "last_price": 155.75,
-  "bid": 155.70,
-  "ask": 155.80,
-  "bid_size": 5,
-  "ask_size": 3,
-  "volume": 1250000,
-  "open": 154.25,
-  "high": 156.10,
-  "low": 153.90,
-  "close": 154.50,
-  "timestamp": "2025-10-05T10:15:30Z"
-}
-```
-
 #### `GET /ibkr/market_data/historical`
 Get historical market data.
 
@@ -308,8 +275,8 @@ curl -X GET "http://localhost:8000/ibkr/market_data/historical?contract_id=26559
 ]
 ```
 
-#### `GET /ibkr/tickers`
-Get real-time ticker data for a symbol or contract IDs.
+#### `GET /ibkr/market_data`
+Get real-time market data for a symbol or contract IDs.
 
 **Query Parameters:**
 - `symbol`: Symbol to get data for (e.g., AAPL)
@@ -323,7 +290,7 @@ Get real-time ticker data for a symbol or contract IDs.
 
 **Example with symbol:**
 ```bash
-curl -X GET "http://localhost:8000/ibkr/tickers?symbol=AAPL&market_data_subscription_type=delayed" -H "Accept: application/json"
+curl -X GET "http://localhost:8000/ibkr/market_data?symbol=AAPL&market_data_subscription_type=delayed" -H "Accept: application/json"
 ```
 
 **Response:**
@@ -883,8 +850,8 @@ curl http://localhost:8000/ibkr/account/summary
 # Get positions
 curl http://localhost:8000/ibkr/account/positions
 
-# Get market data snapshot (example with AAPL)
-curl "http://localhost:8000/ibkr/market_data/snapshot?symbol=AAPL&sec_type=STK"
+# Get market data (example with AAPL)
+curl "http://localhost:8000/ibkr/market_data?symbol=AAPL"
 ```
 
 ### API Documentation

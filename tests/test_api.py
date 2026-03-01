@@ -105,10 +105,10 @@ class TestMarketData:
         assert response.status_code in [200, 500]
     
     @pytest.mark.parametrize("symbol", ["AAPL", "MSFT"])
-    def test_tickers(self, session, base_url, symbol):
-        """Test GET /ibkr/tickers."""
+    def test_market_data(self, session, base_url, symbol):
+        """Test GET /ibkr/market_data."""
         response = session.get(
-            f"{base_url}/ibkr/tickers",
+            f"{base_url}/ibkr/market_data",
             params={"symbol": symbol}
         )
         assert response.status_code in [200, 500]

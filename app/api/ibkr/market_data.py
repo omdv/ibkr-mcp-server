@@ -4,7 +4,7 @@ from fastapi import Query
 from fastapi.responses import JSONResponse
 from app.api.ibkr import ibkr_router, ib_interface
 from app.core.setup_logging import logger
-from app.models import TickerData, BarData, TickData
+from app.models import MarketData, BarData
 
 # Module-level query parameter definitions
 CONTRACT_IDS_QUERY = Query(default=None, description="List of contract IDs")
@@ -15,21 +15,21 @@ EXCHANGE_QUERY = Query(default="SMART", description="Exchange (used with symbol)
 CURRENCY_QUERY = Query(default="USD", description="Currency")
 
 @ibkr_router.get(
-  "/tickers",
-  operation_id="get_tickers",
-  response_model=list[TickerData],
+  "/market_data",
+  operation_id="get_market_data",
+  response_model=list[MarketData],
 )
-async def get_tickers(
+async def get_market_data(
   contract_ids: list[int] | int | None = CONTRACT_IDS_QUERY,
   symbol: str | None = Query(default=None, description="Symbol to get data for (optional if contract_ids is provided, recommended for better performance)"),
   sec_type: str = SEC_TYPE_QUERY,
   exchange: str = EXCHANGE_QUERY,
   currency: str = CURRENCY_QUERY,
   market_data_subscription_type: str = "realtime" 
-) -> list[TickerData]:
-  """Get tickers for a list of contract IDs or symbol.
+) -> list[MarketData]:
+  """Get market data for a list of contract IDs or symbol.
 
-  This function queries the IB TWS to get the tickers for a list of contract IDs
+  This function queries the IB TWS to get the market data for a list of contract IDs
   or a single symbol. If symbol parameters are provided, they will be used to
   resolve the contract ID first.
 
@@ -42,10 +42,10 @@ async def get_tickers(
     market_data_subscription_type: Type of market data subscription (realtime or delayed, default: realtime)
 
   Returns:
-    List[TickerData]: A list of ticker data for the contract IDs.
+    List[MarketData]: A list of market data for the contract IDs.
 
   Example:
-    >>> curl -X GET "http://localhost:8000/ibkr/tickers?symbol=AAPL&market_data_subscription_type=delayed"
+    >>> curl -X GET "http://localhost:8000/ibkr/market_data?symbol=AAPL&market_data_subscription_type=delayed"
     [
       {
         "contract_id": 265598,
@@ -81,11 +81,11 @@ async def get_tickers(
   
   try:
     logger.debug(
-      "Getting tickers for contract_ids={contract_ids}, symbol={symbol}",
+      "Getting market data for contract_ids={contract_ids}, symbol={symbol}",
       contract_ids=contract_ids,
       symbol=symbol,
     )
-    tickers = await ib_interface.get_tickers(
+    market_data = await ib_interface.get_tickers(
       contract_ids=contract_ids,
       symbol=symbol,
       sec_type=sec_type,
@@ -94,16 +94,16 @@ async def get_tickers(
       market_data_subscription_type=market_data_subscription_type
     )
   except Exception as e:
-    logger.error("Error in get_tickers: {!s}", str(e))
+    logger.error("Error in get_market_data: {!s}", str(e))
     return []
   else:
-    logger.debug("Tickers: {tickers}", tickers=tickers)
-    return tickers
+    logger.debug("Market data: {market_data}", market_data=market_data)
+    return market_data
 
 @ibkr_router.get(
-  "/filtered_options_chain",
+  "/market_data/filtered_options_chain",
   operation_id="get_filtered_options_chain",
-  response_model=list[TickerData],
+  response_model=list[MarketData],
 )
 async def get_and_filter_options_chain(
   underlying_symbol: str,
@@ -111,7 +111,7 @@ async def get_and_filter_options_chain(
   underlying_con_id: int,
   filters: str | None = FILTERS_QUERY,
   criteria: str | None = CRITERIA_QUERY,
-) -> list[TickerData]:
+) -> list[MarketData]:
   """Get and filter option chain based on market data criteria.
 
   Args:
@@ -130,7 +130,7 @@ async def get_and_filter_options_chain(
       - max_delta: Maximum delta value (float)
 
   Returns:
-    list[TickerData]: A list of filtered ticker data for options.
+    list[MarketData]: A list of filtered market data for options.
 
   Example:
     await get_and_filter_options(
@@ -146,7 +146,7 @@ async def get_and_filter_options_chain(
       criteria='{"min_delta": -0.06, "max_delta": -0.04}',
     )
     [
-      TickerData(symbol='SPXW 250505P05490000', last=45.50, greeks=GreeksData(delta=-0.05)), #noqa: E501
+      MarketData(symbol='SPXW 250505P05490000', last=45.50, greeks=GreeksData(delta=-0.05)), #noqa: E501
     ]
 
   """
@@ -285,64 +285,3 @@ async def get_historical_data(
     )
 
 
-@ibkr_router.get(
-  "/market_data/snapshot",
-  operation_id="get_market_data_snapshot",
-  response_model=TickData | None,
-)
-async def get_market_data_snapshot(
-  symbol: str = Query(..., description="Symbol to get data for"),
-  sec_type: str = Query(default="STK", description="Security type"),
-  exchange: str = Query(default="SMART", description="Exchange"),
-  currency: str = Query(default="USD", description="Currency"),
-  con_id: int | None = Query(default=None, description="Contract ID (optional)"),
-  market_data_subscription_type: str = Query(
-    default="realtime",
-    description="Market data subscription type (realtime or delayed)"
-  ),
-) -> TickData | None:
-  """Get real-time market data snapshot.
-  
-  Retrieve current market data including last price, bid, ask, and sizes.
-  
-  Args:
-    symbol: Symbol to get data for
-    sec_type: Security type (STK, OPT, FUT, etc.)
-    exchange: Exchange (default: SMART)
-    currency: Currency (default: USD)
-    con_id: Contract ID (optional, for direct lookup)
-    
-  Returns:
-    Tick data with current market information or None if not available
-    
-  Example:
-    >>> await get_market_data_snapshot(symbol="AAPL", sec_type="STK")
-    {
-      "symbol": "AAPL",
-      "contract_id": 265598,
-      "last": 155.50,
-      "bid": 155.48,
-      "ask": 155.52,
-      "bid_size": 100,
-      "ask_size": 200,
-      "volume": 1250000,
-      "timestamp": "2024-01-15T10:30:00"
-    }
-  """
-  try:
-    logger.debug(f"Getting market data snapshot for {symbol}")
-    tick_data = await ib_interface.get_market_data_snapshot(
-      symbol=symbol,
-      sec_type=sec_type,
-      exchange=exchange,
-      currency=currency,
-      con_id=con_id,
-      market_data_subscription_type=market_data_subscription_type,
-    )
-    return tick_data
-  except Exception as e:
-    logger.error(f"Error in get_market_data_snapshot: {e}")
-    return JSONResponse(
-      status_code=500,
-      content={"error": str(e), "message": "Failed to get market data snapshot"}
-    )

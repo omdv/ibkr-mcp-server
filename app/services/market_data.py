@@ -10,7 +10,7 @@ from .client import IBClient
 from .contracts import ContractClient
 from app.api.ibkr.ib_constants import LIVE, FROZEN, DELAYED, DELAYED_FROZEN
 from app.core.setup_logging import logger
-from app.models import TickerData, GreeksData, BarData, TickData
+from app.models import MarketData, GreeksData, BarData
 
 class MarketDataClient(IBClient):
   """Market data operations."""
@@ -105,7 +105,7 @@ class MarketDataClient(IBClient):
           fields[attr] = value
       return fields
 
-  def _process_tickers(self, tickers: list[dict]) -> list[TickerData]:
+  def _process_tickers(self, tickers: list[dict]) -> list[MarketData]:
     """Process tickers to extract required fields."""
     result = util.df(tickers)
     result["contract_id"] = result["contract"].apply(lambda x: x.conId)
@@ -118,7 +118,7 @@ class MarketDataClient(IBClient):
     # Convert DataFrame to list of Pydantic models
     ticker_list = []
     for _, row in result.iterrows():
-      ticker_data = TickerData(
+      ticker_data = MarketData(
         contract_id=row["contract_id"],
         symbol=row["symbol"],
         sec_type=row["sec_type"],
@@ -440,7 +440,7 @@ class MarketDataClient(IBClient):
         # Only add market_data_type if it exists and is not None
         if pd.notna(row.get("market_data_type")):
           ticker_kwargs["market_data_type"] = row["market_data_type"]
-        ticker_data = TickerData(**ticker_kwargs)
+        ticker_data = MarketData(**ticker_kwargs)
         filtered_tickers.append(ticker_data)
 
       # Return as list of dictionaries
@@ -622,118 +622,3 @@ class MarketDataClient(IBClient):
       logger.error(f"Historical data error for symbol={symbol}, contract_id={contract_id}: {str(e)}", exc_info=True)
       raise Exception(f"Historical data error: {str(e)}")
 
-  async def get_market_data_snapshot(
-      self,
-      symbol: str,
-      sec_type: str = "STK",
-      exchange: str = "SMART",
-      currency: str = "USD",
-      con_id: int | None = None,
-      market_data_subscription_type: str = "realtime"
-    ) -> TickData | None:
-    """Get real-time market data snapshot.
-    
-    Args:
-      symbol: Symbol to get data for
-      sec_type: Security type (default: STK)
-      exchange: Exchange (default: SMART)
-      currency: Currency (default: USD)
-      con_id: Contract ID (optional)
-      
-    Returns:
-      Tick data or None if not available
-    """
-    await self._connect()
-    
-    try:
-      # Create contract
-      if con_id:
-        ib_contract = Contract(conId=con_id)
-      else:
-        ib_contract = Contract()
-        ib_contract.symbol = symbol
-        ib_contract.secType = sec_type
-        ib_contract.exchange = exchange
-        ib_contract.currency = currency
-      
-      # Qualify contract
-      qualified_contracts = await asyncio.wait_for(
-        self.ib.qualifyContractsAsync(ib_contract),
-        timeout=self.config.ib_request_timeout,
-      )
-      if not qualified_contracts:
-        raise Exception(f"Could not qualify contract: {symbol}")
-      
-      ib_contract = qualified_contracts[0]
-
-      if market_data_subscription_type.lower() == "realtime":
-        market_data_type = LIVE
-      else:
-        market_data_type = DELAYED
-
-      # Set market data type based on market status and subscription type
-      if not self._is_market_open(ib_contract.primaryExchange):
-        market_data_type += 1 # make it FROZEN
-      self.ib.reqMarketDataType(market_data_type)
-      
-      # Request market data snapshot
-      ticker = self.ib.reqMktData(
-        contract=ib_contract,
-        genericTickList='',
-        snapshot=True,
-        regulatorySnapshot=False
-      )
-
-      """
-      Wait for a ticker to stabilize:
-      - Exits after `max_consecutive` intervals with no update
-      - Stops if `timeout` seconds elapse
-      Returns the last usable price (last or close) and a flag if timeout occurred
-      """
-      interval = 1
-      timeout = self.config.ib_request_timeout
-      max_consecutive = int(timeout / interval)
-      loop = asyncio.get_event_loop()
-      start = loop.time()
-      consecutive_timeouts = 0
-      timed_out = False
-
-      while True:
-          # Create a future to wait for the update event
-          future = asyncio.get_event_loop().create_future()
-          # Use updateEvent.wait() which accepts a future and sets it when event fires
-          try:
-              await asyncio.wait_for(ticker.updateEvent.wait(future), timeout=interval)
-              ticker.updateEvent.clear()
-              consecutive_timeouts = 0  # reset counter on any update
-          except asyncio.TimeoutError:
-              consecutive_timeouts += 1
-              if ticker.timestamp or consecutive_timeouts >= max_consecutive:
-                break
-
-          # check overall timeout
-          elapsed = asyncio.get_event_loop().time() - start
-          if elapsed >= timeout:
-              timed_out = True
-              break
-      
-      if not ticker.timestamp:
-        logger.warning(f"No valid price data available for {symbol}")
-        raise Exception(f"No valid price data available for {symbol}. Subscription may not be available, try to use delayed data")
-      else:
-        return TickData(
-          symbol=symbol,
-          contract_id=ib_contract.conId if hasattr(ib_contract, 'conId') else None,
-          last=self._valid_value(ticker.last, float),
-          close=self._valid_value(ticker.close, float),
-          bid=self._valid_value(ticker.bid, float),
-          ask=self._valid_value(ticker.ask, float),
-          bid_size=self._valid_value(ticker.bidSize, int),
-          ask_size=self._valid_value(ticker.askSize, int),
-          volume=self._valid_value(ticker.volume, int),
-          market_data_type=ticker.marketDataType,
-          timestamp=ticker.time.isoformat()
-        )
-    except Exception as e:
-      logger.error(f"Failed to get market data: {e}")
-      raise Exception(f"Market data error: {e}")
