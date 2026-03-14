@@ -95,5 +95,6 @@ jobs:
 
     - name: Package and push Helm chart
       run: |
-        helm package chart/
+        VERSION=${GITHUB_REF_NAME#v}
+        helm package chart/ --version "$VERSION" --app-version "$VERSION"
         helm push ibkr-*.tgz oci://ghcr.io/${{ github.repository_owner }}/charts

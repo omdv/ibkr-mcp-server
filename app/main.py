@@ -41,17 +41,18 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
     logger.exception("Error during cleanup.")
 
 
+config = get_config()
+
 # FastAPI with authentication dependency
 app = FastAPI(
   title="IBKR MCP Server",
   description="Interactive Brokers MCP Server",
   version="0.1.0",
-  docs_url="/docs",
+  docs_url="/docs" if config.enable_mcp else None,
+  openapi_url="/openapi.json" if config.enable_mcp else None,
   lifespan=lifespan,
   dependencies=[Depends(auth_dependency)],
 )
-
-config = get_config()
 
 # Add CORS middleware
 logger.debug(f"CORS allowed origins: {config.get_cors_origins_list()}")
@@ -71,11 +72,13 @@ app.include_router(ibkr_router)
 @app.get("/")
 def read_root() -> dict:
   """Return the root endpoint."""
-  return {
+  response: dict = {
     "message": "Welcome to the IBKR MCP Server",
-    "docs": "/docs",
     "status": "/gateway/status",
   }
+  if config.enable_mcp:
+    response["docs"] = "/docs"
+  return response
 
 
 # MCP server, attached to the FastAPI app, excludes the gateway router

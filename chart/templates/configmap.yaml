@@ -12,6 +12,10 @@ data:
   IBC_ReadOnlyApi: {{ .Values.config.ibcReadOnlyApi | quote }}
   IBC_ReloginAfterSecondFactorAuthenticationTimeout: {{ .Values.config.ibcReloginAfterSecondFactorAuthenticationTimeout | quote }}
   IBC_AutoRestartTime: {{ .Values.config.ibcAutoRestartTime | quote }}
+  IBC_ColdRestartTime: {{ .Values.config.ibcColdRestartTime | quote }}
+  IBC_ExistingSessionDetectedAction: {{ .Values.config.ibcExistingSessionDetectedAction | quote }}
+  IBC_AcceptIncomingConnectionAction: {{ .Values.config.ibcAcceptIncomingConnectionAction | quote }}
+  IBC_AcceptBidAskLastSizeDisplayUpdateNotification: {{ .Values.config.ibcAcceptBidAskLastSizeDisplayUpdateNotification | quote }}
   IBC_CommandServerPort: {{ .Values.config.ibcCommandServerPort | quote }}
   IBC_ControlFrom: {{ .Values.config.ibcControlFrom | quote }}
   IBC_BindAddress: {{ .Values.config.ibcBindAddress | quote }}
