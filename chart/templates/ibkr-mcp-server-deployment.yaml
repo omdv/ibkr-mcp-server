@@ -6,6 +6,8 @@ metadata:
     {{- include "ibkr.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.mcpServer.replicaCount }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "ibkr.selectorLabels" . | nindent 6 }}
@@ -44,7 +46,7 @@ spec:
             name: {{ include "ibkr.fullname" . }}-config
         livenessProbe:
           httpGet:
-            path: /gateway/status
+            path: /health
             port: {{ .Values.mcpServer.service.port }}
           initialDelaySeconds: {{ .Values.mcpServer.livenessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.mcpServer.livenessProbe.periodSeconds }}

@@ -48,8 +48,8 @@ app = FastAPI(
   title="IBKR MCP Server",
   description="Interactive Brokers MCP Server",
   version="0.1.0",
-  docs_url="/docs" if config.enable_mcp else None,
-  openapi_url="/openapi.json" if config.enable_mcp else None,
+  docs_url="/docs",
+  openapi_url="/openapi.json",
   lifespan=lifespan,
   dependencies=[Depends(auth_dependency)],
 )
@@ -72,13 +72,17 @@ app.include_router(ibkr_router)
 @app.get("/")
 def read_root() -> dict:
   """Return the root endpoint."""
-  response: dict = {
+  return {
     "message": "Welcome to the IBKR MCP Server",
+    "docs": "/docs",
     "status": "/gateway/status",
   }
-  if config.enable_mcp:
-    response["docs"] = "/docs"
-  return response
+
+
+@app.get("/health", include_in_schema=False)
+def health() -> dict:
+  """Liveness check — proves the Python process is alive."""
+  return {"status": "ok"}
 
 
 # MCP server, attached to the FastAPI app, excludes the gateway router

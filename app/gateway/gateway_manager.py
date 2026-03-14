@@ -1,8 +1,7 @@
 """Gateway manager for IBKR TWS Gateway."""
 
-import secrets
+import asyncio
 from typing import Any
-from ib_async import IB
 
 from .docker_service import IBKRGatewayDockerService
 from app.core.setup_logging import logger
@@ -41,30 +40,27 @@ class IBKRGatewayManager:
       return success
 
   async def test_external_connection(self) -> bool:
-    """Test connectivity to an external IBKR Gateway.
+    """Check connectivity to external IBKR Gateway via TCP.
 
-    Primarily useful for external mode to verify gateway is reachable.
+    Opens and immediately closes a TCP connection — does not consume an IB
+    API session slot or create a socat child process that lingers on timeout.
     """
     try:
-      ib = IB()
-      await ib.connectAsync(
+      _, writer = await asyncio.wait_for(
+        asyncio.open_connection(config.ib_gateway_host, config.ib_gateway_port),
+        timeout=3.0,
+      )
+      writer.close()
+      await writer.wait_closed()
+    except Exception:
+      logger.debug(
+        "External gateway not reachable at %s:%s",
         config.ib_gateway_host,
         config.ib_gateway_port,
-        clientId=secrets.randbelow(32767) + 1,
-        timeout=20,
-        readonly=True,
       )
-      is_connected = ib.isConnected()
-      if is_connected:
-        ib.disconnect()
-        logger.debug(f"Connected at {config.ib_gateway_host}:{config.ib_gateway_port}")
-      else:
-        logger.warning(f"Failed at {config.ib_gateway_host}:{config.ib_gateway_port}")
-    except Exception:
-      logger.exception("Error testing gateway connectivity")
       return False
     else:
-      return is_connected
+      return True
 
   async def start_gateway(self) -> bool:
     """Start the IBKR Gateway based on mode.
