@@ -3,13 +3,13 @@ from .market_data import MarketDataClient
 from .contracts import ContractClient
 from .scanners import ScannerClient
 from .positions import PositionClient
-from .orders import OrdersClient
+from .history import HistoryClient
 
 class IBInterface(
   MarketDataClient,
   ContractClient,
   ScannerClient,
   PositionClient,
-  OrdersClient,
+  HistoryClient,
 ):
   """Main IB interface combining all functionality."""
