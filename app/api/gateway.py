@@ -10,6 +10,7 @@ router = APIRouter(prefix="/gateway", tags=["gateway"])
 # Global gateway manager instance
 gateway_manager = IBKRGatewayManager()
 
+
 @router.get("/status", operation_id="get_ibkr_gateway_status")
 async def get_gateway_status() -> dict:
   """Get the current status of the IBKR Gateway.

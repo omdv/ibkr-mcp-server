@@ -1,4 +1,5 @@
 """Current price and historical OHLCV bar endpoints."""
+
 import datetime as dt
 
 from fastapi import HTTPException, Query
@@ -14,6 +15,7 @@ _TO_DATE = Query(
   default=None,
   description="End date inclusive (YYYY-MM-DD). Defaults to today.",
 )
+
 
 @ibkr_router.get("/price", operation_id="get_price", response_model=PriceSnapshot)
 async def get_price(
@@ -106,10 +108,21 @@ async def get_historical_bars(
   try:
     logger.debug(
       "Fetching historical: symbol={} exchange={} freq={} {}-{}",
-      symbol, exchange, freq, from_date, resolved_to,
+      symbol,
+      exchange,
+      freq,
+      from_date,
+      resolved_to,
     )
     return await ib_interface.get_historical_bars(
-      symbol, sec_type, exchange, freq, from_date, resolved_to, use_rth, currency,
+      symbol,
+      sec_type,
+      exchange,
+      freq,
+      from_date,
+      resolved_to,
+      use_rth,
+      currency,
     )
   except ValueError as e:
     raise HTTPException(status_code=422, detail=str(e)) from e

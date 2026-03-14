@@ -1,5 +1,7 @@
 """Pydantic models for ticker data."""
+
 from pydantic import BaseModel, Field
+
 
 class GreeksData(BaseModel):
   """Model for options greeks data."""

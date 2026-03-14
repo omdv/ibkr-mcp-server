@@ -1,5 +1,7 @@
 """Pydantic models for options and contract requests."""
+
 from pydantic import BaseModel, Field, ConfigDict
+
 
 class OptionsFilters(BaseModel):
   """Filters to apply to the options chain."""
@@ -28,14 +30,14 @@ class OptionsFilters(BaseModel):
 class OptionsCriteria(BaseModel):
   """Market data criteria to filter options by."""
 
-  min_delta: float | None = Field(default=None,description="Minimum delta value")
-  max_delta: float | None = Field(default=None,description="Maximum delta value")
-  min_gamma: float | None = Field(default=None,description="Minimum gamma value")
-  max_gamma: float | None = Field(default=None,description="Maximum gamma value")
-  min_theta: float | None = Field(default=None,description="Minimum theta value")
-  max_theta: float | None = Field(default=None,description="Maximum theta value")
-  min_vega: float | None = Field(default=None,description="Minimum vega value")
-  max_vega: float | None = Field(default=None,description="Maximum vega value")
+  min_delta: float | None = Field(default=None, description="Minimum delta value")
+  max_delta: float | None = Field(default=None, description="Maximum delta value")
+  min_gamma: float | None = Field(default=None, description="Minimum gamma value")
+  max_gamma: float | None = Field(default=None, description="Maximum gamma value")
+  min_theta: float | None = Field(default=None, description="Minimum theta value")
+  max_theta: float | None = Field(default=None, description="Maximum theta value")
+  min_vega: float | None = Field(default=None, description="Minimum vega value")
+  max_vega: float | None = Field(default=None, description="Maximum vega value")
 
 
 class OptionsRequest(BaseModel):
@@ -87,6 +89,7 @@ class ContractOptions(BaseModel):
     description="Trading class (e.g., 'SPXW' for weekly SPX options)",
   )
 
+
 class ContractDetailsRequest(BaseModel):
   """Request model for contract details endpoint."""
 
@@ -111,7 +114,10 @@ class ContractDetailsRequest(BaseModel):
 class OptionsChainRequest(BaseModel):
   """Request model for options chain endpoint."""
 
-  underlying_symbol: str = Field(...,description="Symbol of the underlying contract")
-  underlying_sec_type: str = Field(...,description="Security type of the underlying")
-  underlying_con_id: int = Field(...,description="Contract ID of the underlying")
-  filters: OptionsFilters = Field(...,description="Filters to apply to the options chain") #noqa: E501
+  underlying_symbol: str = Field(..., description="Symbol of the underlying contract")
+  underlying_sec_type: str = Field(..., description="Security type of the underlying")
+  underlying_con_id: int = Field(..., description="Contract ID of the underlying")
+  filters: OptionsFilters = Field(
+    ...,
+    description="Filters to apply to the options chain",
+  )

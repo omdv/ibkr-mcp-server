@@ -1,10 +1,12 @@
 """Scanner operations."""
+
 from defusedxml import ElementTree
 from ib_async.objects import ScannerSubscription, TagValue
 
 from .client import IBClient
 from app.core.setup_logging import logger
 from app.models.scanner import ScannerRequest
+
 
 class ScannerClient(IBClient):
   """Scanner operations.
@@ -80,7 +82,10 @@ class ScannerClient(IBClient):
 
     """
     try:
-      cleaned_tags = [TagValue(tag.split("=")[0], tag.split("=")[1]) for tag in scanner_request.get_filter_codes()] #noqa: E501
+      cleaned_tags = [
+        TagValue(tag.split("=")[0], tag.split("=")[1])
+        for tag in scanner_request.get_filter_codes()
+      ]
 
       await self._connect()
       sub_object = ScannerSubscription(

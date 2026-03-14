@@ -1,4 +1,5 @@
 """Authentication dependency for the IBKR MCP Server."""
+
 import secrets
 from fastapi import status, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -6,8 +7,8 @@ from app.core.config import get_config
 
 # A list of paths that do not require authentication
 UNPROTECTED_PATHS = [
-    "/",
-    "/gateway/status",
+  "/",
+  "/gateway/status",
 ]
 
 # 1. Tell HTTPBearer not to raise an error if the token is missing

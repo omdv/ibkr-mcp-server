@@ -1,14 +1,15 @@
 """Models package."""
+
 from .history import HistoricalBar, PriceSnapshot
 from .ticker import TickerData, GreeksData
 from .scanner import ScannerFilter, ScannerRequest
 from .options import (
-    OptionsRequest,
-    OptionsFilters,
-    OptionsCriteria,
-    ContractDetailsRequest,
-    ContractOptions,
-    OptionsChainRequest,
+  OptionsRequest,
+  OptionsFilters,
+  OptionsCriteria,
+  ContractDetailsRequest,
+  ContractOptions,
+  OptionsChainRequest,
 )
 
 __all__ = [
@@ -24,4 +25,4 @@ __all__ = [
   "ScannerFilter",
   "ScannerRequest",
   "TickerData",
-  ]
+]

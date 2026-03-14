@@ -47,6 +47,7 @@ ignore = [
   "TRY003", # long exception messages — acceptable for clear error messages
   "EM101",  # string literal in exception — pairs with TRY003
   "DTZ011", # date.today() without timezone — date has no tz concept
+  "COM812", # trailing comma — conflicts with ruff formatter
 ]
 
 # Formatter settings

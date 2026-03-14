@@ -1,4 +1,5 @@
 """Base IB client connection handling."""
+
 import asyncio
 import datetime as dt
 import secrets
@@ -8,6 +9,8 @@ from ib_async import IB
 
 from app.core.config import get_config
 from app.core.setup_logging import logger
+
+
 class IBClient:
   """Base IB client connection handling. No public methods."""
 
@@ -49,12 +52,23 @@ class IBClient:
   ) -> object:
     """Return a qualified Contract, using a cache to avoid redundant IB round-trips."""
     from ib_async.contract import Contract  # noqa: PLC0415
+
     key = (symbol.upper(), sec_type.upper(), exchange.upper(), currency.upper())
     if key not in self._contract_cache:
-      contract = Contract(symbol=symbol, secType=sec_type, exchange=exchange, currency=currency)
+      contract = Contract(
+        symbol=symbol,
+        secType=sec_type,
+        exchange=exchange,
+        currency=currency,
+      )
       [qualified] = await self.ib.qualifyContractsAsync(contract)
       self._contract_cache[key] = qualified
-      logger.debug("Qualified contract {}/{} conId={}", symbol, exchange, self._contract_cache[key].conId)
+      logger.debug(
+        "Qualified contract {}/{} conId={}",
+        symbol,
+        exchange,
+        self._contract_cache[key].conId,
+      )
     return self._contract_cache[key]
 
   def _is_market_open(self) -> bool:

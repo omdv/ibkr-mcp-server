@@ -1,9 +1,11 @@
 """Position operations."""
+
 import pandas as pd
 from ib_async import util
 
 from .client import IBClient
 from app.core.setup_logging import logger
+
 
 class PositionClient(IBClient):
   """Position operations.

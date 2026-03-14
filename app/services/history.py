@@ -1,4 +1,5 @@
 """Historical OHLCV bars and current price snapshot operations."""
+
 import datetime as dt
 import math
 import time
@@ -12,25 +13,25 @@ from app.models.history import HistoricalBar, PriceSnapshot
 
 # Maps user-facing frequency strings to IB bar size settings.
 FREQ_TO_BAR_SIZE: dict[str, str] = {
-  "1min":  "1 min",
-  "5min":  "5 mins",
+  "1min": "1 min",
+  "5min": "5 mins",
   "15min": "15 mins",
   "30min": "30 mins",
-  "1h":    "1 hour",
-  "4h":    "4 hours",
-  "1d":    "1 day",
-  "1w":    "1 week",
-  "1M":    "1 month",
+  "1h": "1 hour",
+  "4h": "4 hours",
+  "1d": "1 day",
+  "1w": "1 week",
+  "1M": "1 month",
 }
 
 # IB whatToShow value per security type.
 _WHAT_TO_SHOW: dict[str, str] = {
-  "IND":  "TRADES",
-  "STK":  "TRADES",
-  "ETF":  "TRADES",
-  "FUT":  "TRADES",
+  "IND": "TRADES",
+  "STK": "TRADES",
+  "ETF": "TRADES",
+  "FUT": "TRADES",
   "CASH": "MIDPOINT",
-  "OPT":  "TRADES",
+  "OPT": "TRADES",
 }
 
 
@@ -40,9 +41,10 @@ def _to_float(v: float) -> float | None:
 
 
 def _bar_date(bar: BarData) -> dt.date:
-  """Extract the date from a BarData, handling both daily (date) and intraday (datetime) bars."""
+  """Extract date from a BarData, handling daily (date) and intraday (datetime) bars."""
   d = bar.date
   return d.date() if isinstance(d, dt.datetime) else d  # type: ignore[return-value]
+
 
 def _bar_to_model(bar: BarData) -> HistoricalBar:
   """Convert an ib_async BarData to a HistoricalBar model."""
@@ -100,33 +102,33 @@ class HistoryClient(IBClient):
         close=_to_float(ticker.close),
         timestamp=dt.datetime.now(dt.UTC).isoformat(),
       )
-    else:
-      # Closed path: reqTickersAsync for indices waits ~11s for bid/ask that never
-      # arrive. Use the last daily bar instead — IB returns it immediately.
-      what_to_show = _WHAT_TO_SHOW.get(sec_type.upper(), "TRADES")
-      bars = await self.ib.reqHistoricalDataAsync(
-        contract,
-        endDateTime="",
-        durationStr="1 D",
-        barSizeSetting="1 day",
-        whatToShow=what_to_show,
-        useRTH=True,
-        formatDate=1,
-        keepUpToDate=False,
-      )
-      logger.debug("reqHistoricalDataAsync (closed) took {:.2f}s", time.monotonic() - t0)
-      if not bars:
-        raise RuntimeError(f"No historical data returned for {symbol}/{exchange}")
-      close = _to_float(bars[-1].close)
-      return PriceSnapshot(
-        symbol=contract.localSymbol or symbol,
-        sec_type=sec_type,
-        last=close,
-        bid=None,
-        ask=None,
-        close=close,
-        timestamp=dt.datetime.now(dt.UTC).isoformat(),
-      )
+    # Closed path: reqTickersAsync for indices waits ~11s for bid/ask that never
+    # arrive. Use the last daily bar instead — IB returns it immediately.
+    what_to_show = _WHAT_TO_SHOW.get(sec_type.upper(), "TRADES")
+    bars = await self.ib.reqHistoricalDataAsync(
+      contract,
+      endDateTime="",
+      durationStr="1 D",
+      barSizeSetting="1 day",
+      whatToShow=what_to_show,
+      useRTH=True,
+      formatDate=1,
+      keepUpToDate=False,
+    )
+    logger.debug("reqHistoricalDataAsync (closed) took {:.2f}s", time.monotonic() - t0)
+    if not bars:
+      msg = f"No historical data returned for {symbol}/{exchange}"
+      raise RuntimeError(msg)
+    close = _to_float(bars[-1].close)
+    return PriceSnapshot(
+      symbol=contract.localSymbol or symbol,
+      sec_type=sec_type,
+      last=close,
+      bid=None,
+      ask=None,
+      close=close,
+      timestamp=dt.datetime.now(dt.UTC).isoformat(),
+    )
 
   async def get_historical_bars(
     self,
@@ -195,7 +197,13 @@ class HistoryClient(IBClient):
 
     logger.debug(
       "reqHistoricalData took {:.2f}s — received {} raw bars for {}/{} freq={} {}-{}",
-      time.monotonic() - t0, len(bars), symbol, exchange, freq, from_date, to_date,
+      time.monotonic() - t0,
+      len(bars),
+      symbol,
+      exchange,
+      freq,
+      from_date,
+      to_date,
     )
     # IB's duration window is calendar days and may reach before from_date.
     # Post-filter to enforce the requested boundary.

@@ -37,6 +37,7 @@ docker_config = {
   },
 }
 
+
 class IBKRGatewayDockerService:
   """Service for managing IBKR Gateway Docker container."""
 
@@ -100,7 +101,8 @@ class IBKRGatewayDockerService:
     # Rate limiting: don't check too frequently
     if current_time - self._last_health_check < self._health_check_interval:
       await asyncio.sleep(
-        self._health_check_interval - (current_time - self._last_health_check))
+        self._health_check_interval - (current_time - self._last_health_check),
+      )
 
     async with self._health_check_semaphore:
       self._last_health_check = time.time()
@@ -112,7 +114,10 @@ class IBKRGatewayDockerService:
     try:
       ib = IB()
       await ib.connectAsync(
-        config.ib_gateway_host, config.ib_gateway_port, 1111, readonly=True,
+        config.ib_gateway_host,
+        config.ib_gateway_port,
+        1111,
+        readonly=True,
       )
       return ib.isConnected()
     except Exception:

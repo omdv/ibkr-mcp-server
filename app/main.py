@@ -12,6 +12,7 @@ from app.core.config import get_config
 from app.core.auth import auth_dependency
 from app.core.setup_logging import logger
 
+
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
   """Lifespan events for the application."""
@@ -39,6 +40,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None, None]:
   except Exception:
     logger.exception("Error during cleanup.")
 
+
 # FastAPI with authentication dependency
 app = FastAPI(
   title="IBKR MCP Server",
@@ -65,6 +67,7 @@ app.add_middleware(
 app.include_router(gateway.router)
 app.include_router(ibkr_router)
 
+
 @app.get("/")
 def read_root() -> dict:
   """Return the root endpoint."""
@@ -73,6 +76,7 @@ def read_root() -> dict:
     "docs": "/docs",
     "status": "/gateway/status",
   }
+
 
 # MCP server, attached to the FastAPI app, excludes the gateway router
 if config.enable_mcp:

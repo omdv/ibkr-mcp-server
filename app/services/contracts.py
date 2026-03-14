@@ -1,9 +1,11 @@
 """Contract operations."""
+
 from ib_async import util
 from ib_async.contract import Contract, Option, ComboLeg
 
 from app.core.setup_logging import logger
 from .client import IBClient
+
 
 class ContractClient(IBClient):
   """Contract operations.
@@ -15,12 +17,12 @@ class ContractClient(IBClient):
   """
 
   async def get_contract_details(
-      self,
-      symbol: str,
-      sec_type: str,
-      exchange: str,
-      options: dict | None = None,
-    ) -> list[str]:
+    self,
+    symbol: str,
+    sec_type: str,
+    exchange: str,
+    options: dict | None = None,
+  ) -> list[str]:
     """Get contract details for a given symbol.
 
     Args:
@@ -71,15 +73,17 @@ class ContractClient(IBClient):
 
       contracts = await self.ib.qualifyContractsAsync(contract)
       contracts = util.df(contracts)
-      contracts = contracts[[
-        "conId",
-        "symbol",
-        "secType",
-        "exchange",
-        "currency",
-        "localSymbol",
-        "multiplier",
-      ]]
+      contracts = contracts[
+        [
+          "conId",
+          "symbol",
+          "secType",
+          "exchange",
+          "currency",
+          "localSymbol",
+          "multiplier",
+        ]
+      ]
     except Exception as e:
       logger.error("Error getting contract details: {}", str(e))
       raise
@@ -92,7 +96,7 @@ class ContractClient(IBClient):
     underlying_sec_type: str,
     underlying_con_id: int,
     filters: dict | None = None,
-    ) -> list[str]:
+  ) -> list[str]:
     """Get options chain for a given underlying contract.
 
     NOTE: skipping exchange filter as conId is the same, using only "SMART"
@@ -121,13 +125,15 @@ class ContractClient(IBClient):
         underlying_con_id,
       )
       chains = util.df(chains)
-      chains = chains[[
-        "exchange",
-        "underlyingConId",
-        "tradingClass",
-        "expirations",
-        "strikes",
-      ]]
+      chains = chains[
+        [
+          "exchange",
+          "underlyingConId",
+          "tradingClass",
+          "expirations",
+          "strikes",
+        ]
+      ]
 
       if filters:
         expirations = filters.get("expirations", chains["expirations"].iloc[0])

@@ -1,4 +1,5 @@
 """Pydantic models for scanner operations."""
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -71,7 +72,9 @@ class ScannerRequest(BaseModel):
           error_msg = f"Invalid filter format '{filter_item}'. Use 'parameter=value'."
           raise ValueError(error_msg)
 
-        filters.append(ScannerFilter(parameter=parts[0].strip(), value=parts[1].strip())) #noqa: E501
+        filters.append(
+          ScannerFilter(parameter=parts[0].strip(), value=parts[1].strip()),
+        )
 
     return cls(
       instrument_code=instrument_code,

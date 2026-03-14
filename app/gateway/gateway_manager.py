@@ -1,4 +1,5 @@
 """Gateway manager for IBKR TWS Gateway."""
+
 import secrets
 from typing import Any
 from ib_async import IB
@@ -9,6 +10,7 @@ from app.core.config import get_config
 
 config = get_config()
 
+
 class IBKRGatewayManager:
   """Manager for IBKR Gateway container and interactions."""
 
@@ -17,7 +19,6 @@ class IBKRGatewayManager:
     self.is_external = config.gateway_mode == "external"
     self.docker_service = IBKRGatewayDockerService() if not self.is_external else None
     self.is_running = False
-
 
   async def start_container(self) -> bool:
     """Start the internal IBKR Gateway Docker container.
@@ -162,8 +163,12 @@ class IBKRGatewayManager:
         await self.stop_gateway()
 
       # Cleanup docker service resources (only for internal mode)
-      if (not self.is_external and hasattr(self, "docker_service") and
-          self.docker_service and hasattr(self.docker_service, "client")):
+      if (
+        not self.is_external
+        and hasattr(self, "docker_service")
+        and self.docker_service
+        and hasattr(self.docker_service, "client")
+      ):
         self.docker_service.client.close()
     except Exception as e:
       logger.error(f"Error during cleanup: {e}")

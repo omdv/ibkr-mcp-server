@@ -9,6 +9,7 @@ from app.core.setup_logging import setup_logging
 
 logger = setup_logging()
 
+
 def parse_args() -> argparse.Namespace:
   """Parse command line arguments."""
   parser = argparse.ArgumentParser(description="IBKR MCP Server")
@@ -86,25 +87,27 @@ def parse_args() -> argparse.Namespace:
   )
   return parser.parse_args()
 
+
 def main() -> None:
   """Run the app."""
   cli_args_dict = vars(parse_args())
   provided_cli_args = {
-      key: value for key, value in cli_args_dict.items() if value is not None
+    key: value for key, value in cli_args_dict.items() if value is not None
   }
 
   # Initialize config. Pydantic gives priority to the arguments passed here.
   config = init_config(**provided_cli_args)
 
   # Validate required fields
-  if config.gateway_mode == "internal" and \
-    (not config.ib_gateway_username or not config.ib_gateway_password):
-      print("Error: IB Gateway username and password are required for internal mode") # noqa: T201
-      print("Set via CLI: --ib-gateway-username and --ib-gateway-password") # noqa: T201
-      print("Or via env: IBKR_IB_GATEWAY_USERNAME and IBKR_IB_GATEWAY_PASSWORD") # noqa: T201
-      sys.exit(1)
+  if config.gateway_mode == "internal" and (
+    not config.ib_gateway_username or not config.ib_gateway_password
+  ):
+    print("Error: IB Gateway username and password are required for internal mode")  # noqa: T201
+    print("Set via CLI: --ib-gateway-username and --ib-gateway-password")  # noqa: T201
+    print("Or via env: IBKR_IB_GATEWAY_USERNAME and IBKR_IB_GATEWAY_PASSWORD")  # noqa: T201
+    sys.exit(1)
 
-  from app.main import app # noqa: PLC0415
+  from app.main import app  # noqa: PLC0415
 
   # Display authentication information
   auth_token = config.get_effective_auth_token()
@@ -125,6 +128,7 @@ def main() -> None:
     log_config=None,
     access_log=True,
   )
+
 
 if __name__ == "__main__":
   main()

@@ -1,4 +1,5 @@
 """Pydantic models for current price and historical bar data."""
+
 from pydantic import BaseModel, Field
 
 

@@ -1,4 +1,5 @@
 """Logging configuration for the IBKR Agent project."""
+
 from __future__ import annotations
 
 import sys
@@ -7,8 +8,9 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 if TYPE_CHECKING:
-    from loguru import Logger
+  from loguru import Logger
 from app.core.config import get_config
+
 
 class InterceptHandler(logging.Handler):
   """Intercept handler for logging."""
@@ -28,7 +30,8 @@ class InterceptHandler(logging.Handler):
       depth += 1
 
     logger.opt(depth=depth, exception=record.exc_info).log(
-      level, record.getMessage(),
+      level,
+      record.getMessage(),
     )
 
 

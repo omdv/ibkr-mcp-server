@@ -1,4 +1,5 @@
 """Market data operations."""
+
 import asyncio
 import pandas as pd
 from ib_async import util
@@ -7,6 +8,7 @@ from ib_async.contract import Contract
 from .client import IBClient
 from app.core.setup_logging import logger
 from app.models import TickerData, GreeksData
+
 
 class MarketDataClient(IBClient):
   """Market data operations."""
@@ -44,9 +46,7 @@ class MarketDataClient(IBClient):
     Only extract greeks for options contracts, use modelGreeks.
     """
     if (
-      ticker.secType == "OPT" and
-      hasattr(ticker, "modelGreeks") and
-      ticker.modelGreeks
+      ticker.secType == "OPT" and hasattr(ticker, "modelGreeks") and ticker.modelGreeks
     ):
       return GreeksData(
         delta=ticker.modelGreeks.delta,
@@ -58,9 +58,9 @@ class MarketDataClient(IBClient):
     return None
 
   async def get_tickers(
-      self,
-      contract_ids: list[int],
-    ) -> list[dict]:
+    self,
+    contract_ids: list[int],
+  ) -> list[dict]:
     """Get tickers for a list of contract IDs.
 
     Args:
@@ -126,13 +126,13 @@ class MarketDataClient(IBClient):
       return result_dict
 
   async def get_and_filter_options(
-      self,
-      underlying_symbol: str,
-      underlying_sec_type: str,
-      underlying_con_id: int,
-      filters: dict | None = None,
-      criteria: dict | None = None,
-    ) -> list[dict]:
+    self,
+    underlying_symbol: str,
+    underlying_sec_type: str,
+    underlying_con_id: int,
+    filters: dict | None = None,
+    criteria: dict | None = None,
+  ) -> list[dict]:
     """Get and filter option chain based on market data criteria.
 
     Args:
@@ -181,7 +181,7 @@ class MarketDataClient(IBClient):
         "delta": ("min_delta", "max_delta"),
         "gamma": ("min_gamma", "max_gamma"),
         "theta": ("min_theta", "max_theta"),
-        "vega":  ("min_vega",  "max_vega"),
+        "vega": ("min_vega", "max_vega"),
       }
       for greek_name, (min_key, max_key) in greek_filters.items():
         if not criteria or (min_key not in criteria and max_key not in criteria):
@@ -194,8 +194,8 @@ class MarketDataClient(IBClient):
         filtered_data = filtered_data[
           filtered_data["greeks"].apply(
             lambda x, g=greek_name, mn=min_key, mx=max_key: (
-              (mn not in criteria or x[g] >= criteria[mn]) and
-              (mx not in criteria or x[g] <= criteria[mx])
+              (mn not in criteria or x[g] >= criteria[mn])
+              and (mx not in criteria or x[g] <= criteria[mx])
             ),
           )
         ]

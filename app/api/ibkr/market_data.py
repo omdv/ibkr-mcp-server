@@ -1,7 +1,9 @@
 """Contract and options-related tools."""
+
 from app.api.ibkr import ibkr_router, ib_interface
 from app.core.setup_logging import logger
 from app.models import TickerData, OptionsRequest
+
 
 @ibkr_router.get(
   "/tickers",
@@ -60,6 +62,7 @@ async def get_tickers(
     logger.debug("Tickers: {tickers}", tickers=tickers)
     return tickers
 
+
 @ibkr_router.post(
   "/filtered_options_tickers",
   operation_id="get_filtered_options_tickers",
@@ -116,8 +119,9 @@ async def get_and_filter_options_tickers(
 
     # `exclude_none=True` ensures we don't pass keys with null values.
     filters_dict = request.filters.model_dump(exclude_none=True)
-    criteria_dict = request.criteria.model_dump(exclude_none=True)\
-      if request.criteria else None
+    criteria_dict = (
+      request.criteria.model_dump(exclude_none=True) if request.criteria else None
+    )
 
     filtered_options = await ib_interface.get_and_filter_options(
       request.underlying_symbol,

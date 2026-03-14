@@ -1,9 +1,11 @@
 """Scanner-related tools."""
+
 from fastapi import Query
 from app.api.ibkr import ibkr_router, ib_interface
 from app.core.setup_logging import logger
 from app.models import ScannerRequest
 from pydantic import ValidationError
+
 
 @ibkr_router.get("/scanner/workflow", operation_id="get_scanner_workflow")
 async def get_scanner_workflow() -> dict:
@@ -96,6 +98,7 @@ async def get_scanner_workflow() -> dict:
     },
   }
 
+
 @ibkr_router.get(
   "/scanner/instrument_codes",
   operation_id="get_scanner_instrument_codes",
@@ -150,6 +153,7 @@ async def get_scanner_instrument_codes() -> dict:
       "usage": "Use instrument_code parameter in scanner queries",
     }
 
+
 @ibkr_router.get("/scanner/location_codes", operation_id="get_scanner_location_codes")
 async def get_scanner_location_codes() -> dict:
   """Get detailed scanner location codes with descriptions.
@@ -190,6 +194,7 @@ async def get_scanner_location_codes() -> dict:
       "descriptions": descriptions,
       "usage": "Use location_code parameter in scanner queries",
     }
+
 
 @ibkr_router.get("/scanner/scan_codes", operation_id="get_scanner_scan_codes")
 async def get_scanner_scan_codes() -> dict:
@@ -242,6 +247,7 @@ async def get_scanner_scan_codes() -> dict:
       ],
     }
 
+
 @ibkr_router.get("/scanner/filter_codes", operation_id="get_scanner_filter_codes")
 async def get_scanner_filter_codes() -> dict:
   """Get detailed scanner filter codes with examples and usage hints.
@@ -286,10 +292,15 @@ async def get_scanner_filter_codes() -> dict:
       ],
     }
 
+
 @ibkr_router.get("/scanner/results", operation_id="get_scanner_results")
 async def get_scanner_results(
-  instrument_code: str = Query(description="Instrument type (STK, FUT, OPT). Call get_scanner_instrument_codes() first."), #noqa: E501
-  location_code: str = Query(description="Location code (e.g., STK.US, STK.EU). Call get_scanner_location_codes() first."), #noqa: E501
+  instrument_code: str = Query(
+    description="Instrument type (STK, FUT, OPT). Call get_scanner_instrument_codes() first.",  # noqa: E501
+  ),
+  location_code: str = Query(
+    description="Location code (e.g., STK.US, STK.EU). Call get_scanner_location_codes() first.",  # noqa: E501
+  ),
   scan_code: str | None = Query(
     default=None,
     description="""
@@ -309,7 +320,6 @@ async def get_scanner_results(
     Call get_scanner_filter_codes() to see all available filters with examples.
     """,
   ),
-
   max_results: int = Query(
     default=50,
     description="Maximum number of results to return (1-50)",
@@ -354,7 +364,9 @@ async def get_scanner_results(
         max_results=max_results,
       )
     except ValidationError as e:
-      error_details = "; ".join([f"{err['loc'][0]}: {err['msg']}" for err in e.errors()]) #noqa: E501
+      error_details = "; ".join(
+        [f"{err['loc'][0]}: {err['msg']}" for err in e.errors()],
+      )
       return f"Error: Invalid scanner parameters - {error_details}"
     except ValueError as e:
       return f"Error: {str(e)!r}"

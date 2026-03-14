@@ -4,6 +4,7 @@ from loguru import logger
 from app.api.ibkr import ibkr_router, ib_interface
 from app.models import ContractDetailsRequest, OptionsChainRequest
 
+
 @ibkr_router.post("/contract_details", operation_id="get_contract_details")
 async def get_contract_details(
   request: ContractDetailsRequest,
@@ -30,8 +31,9 @@ async def get_contract_details(
   """
   try:
     logger.debug("Getting contract details for symbol: {symbol}", symbol=request.symbol)
-    options_dict = request.options.model_dump(exclude_none=True) \
-      if request.options else {}
+    options_dict = (
+      request.options.model_dump(exclude_none=True) if request.options else {}
+    )
     details = await ib_interface.get_contract_details(
       symbol=request.symbol,
       sec_type=request.sec_type,
@@ -44,6 +46,7 @@ async def get_contract_details(
   else:
     logger.debug("Contract details: {details}", details=details)
     return f"The contract details for the symbol are: {details}"
+
 
 @ibkr_router.post("/options_chain", operation_id="get_options_chain")
 async def get_options_chain(request: OptionsChainRequest) -> str:
