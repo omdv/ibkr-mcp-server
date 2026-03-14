@@ -75,8 +75,9 @@ def read_root() -> dict:
   }
 
 # MCP server, attached to the FastAPI app, excludes the gateway router
-mcp = FastApiMCP(
-  app,
-  exclude_tags=["gateway"],
-)
-mcp.mount()
+if config.enable_mcp:
+  mcp = FastApiMCP(
+    app,
+    exclude_tags=["gateway"],
+  )
+  mcp.mount()

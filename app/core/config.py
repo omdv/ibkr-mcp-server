@@ -1,6 +1,6 @@
 """Configuration for the application."""
 import secrets
-from pydantic import field_validator
+from pydantic import PrivateAttr, field_validator
 from pydantic_settings import BaseSettings
 
 class Config(BaseSettings):
@@ -25,18 +25,31 @@ class Config(BaseSettings):
 
   # Non-essential parameters
   enable_file_logging: bool = False   # IBKR_ENABLE_FILE_LOGGING
+  enable_mcp: bool = False             # IBKR_ENABLE_MCP
   log_file_path: str = "logs/app.log"  # IBKR_LOG_FILE_PATH
 
   # Security parameters
   cors_allowed_origins: str = "*"  # IBKR_CORS_ALLOWED_ORIGINS (comma-separated)
   auth_token: str | None = None  # IBKR_AUTH_TOKEN
-  _generated_token: str | None = None  # Internal field for generated token
+  _generated_token: str | None = PrivateAttr(default=None)
+
+  @field_validator("auth_token", mode="before")
+  @classmethod
+  def coerce_empty_str_to_none(cls, v: object) -> object:
+    """Treat empty string the same as unset — both mean auto-generate."""
+    if isinstance(v, str) and not v.strip():
+      return None
+    return v
 
   def get_cors_origins_list(self) -> list[str]:
     """Parse comma-separated CORS origins into a list."""
     if not self.cors_allowed_origins:
       return ["*"]
-    return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
+    return [
+      origin.strip()
+      for origin in self.cors_allowed_origins.split(",")
+      if origin.strip()
+    ]
 
   def get_effective_auth_token(self) -> str:
     """Get the effective auth token, generating one if none provided."""

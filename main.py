@@ -76,6 +76,14 @@ def parse_args() -> argparse.Namespace:
     help="Bearer token for API authentication (optional)",
   )
 
+  # MCP toggle
+  parser.add_argument(
+    "--mcp",
+    dest="enable_mcp",
+    action=argparse.BooleanOptionalAction,
+    default=None,
+    help="Enable MCP server (default: enabled, disable with --no-mcp)",
+  )
   return parser.parse_args()
 
 def main() -> None:
