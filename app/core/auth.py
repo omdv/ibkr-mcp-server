@@ -8,6 +8,7 @@ from app.core.config import get_config
 # A list of paths that do not require authentication
 UNPROTECTED_PATHS = [
   "/",
+  "/health",
   "/gateway/status",
 ]
 
