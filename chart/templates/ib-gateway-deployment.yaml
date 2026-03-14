@@ -51,11 +51,16 @@ spec:
         envFrom:
         - configMapRef:
             name: {{ include "ibkr.fullname" . }}-config
+        startupProbe:
+          tcpSocket:
+            port: 4001
+          periodSeconds: {{ .Values.ibGateway.startupProbe.periodSeconds }}
+          failureThreshold: {{ .Values.ibGateway.startupProbe.failureThreshold }}
+          timeoutSeconds: {{ .Values.ibGateway.startupProbe.timeoutSeconds }}
         livenessProbe:
           tcpSocket:
             port: 4001
-          initialDelaySeconds: {{ .Values.ibGateway.livenessProbe.initialDelaySeconds }}
           periodSeconds: {{ .Values.ibGateway.livenessProbe.periodSeconds }}
-          timeoutSeconds: {{ .Values.ibGateway.livenessProbe.timeoutSeconds }}
           failureThreshold: {{ .Values.ibGateway.livenessProbe.failureThreshold }}
+          timeoutSeconds: {{ .Values.ibGateway.livenessProbe.timeoutSeconds }}
       restartPolicy: Always
