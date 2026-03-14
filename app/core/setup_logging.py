@@ -1,8 +1,13 @@
 """Logging configuration for the IBKR Agent project."""
+from __future__ import annotations
 
 import sys
 import logging
+from typing import TYPE_CHECKING
 from loguru import logger
+
+if TYPE_CHECKING:
+    from loguru import Logger
 from app.core.config import get_config
 
 class InterceptHandler(logging.Handler):
@@ -27,7 +32,7 @@ class InterceptHandler(logging.Handler):
     )
 
 
-def setup_logging() -> None:
+def setup_logging() -> Logger:
   """Set up logging configuration based on settings."""
   config = get_config()
 
