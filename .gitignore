@@ -11,3 +11,6 @@ wheels/
 
 # Helm
 local/
+
+# Claude
+CLAUDE.md
