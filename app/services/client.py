@@ -1,11 +1,13 @@
 """Base IB client connection handling."""
 import asyncio
 import datetime as dt
+import secrets
+
+import exchange_calendars as ecals
 from ib_async import IB
 
 from app.core.config import get_config
 from app.core.setup_logging import logger
-
 class IBClient:
   """Base IB client connection handling. No public methods."""
 
@@ -13,6 +15,9 @@ class IBClient:
     """Initialize IB interface."""
     self.config = get_config()
     self.ib = IB()
+    # Qualified contracts keyed by (symbol, sec_type, exchange, currency).
+    # qualifyContractsAsync is an IB round-trip; caching eliminates it on repeat calls.
+    self._contract_cache: dict[tuple[str, str, str, str], object] = {}
 
   async def _connect(self) -> None:
     """Create and connect IB client."""
@@ -26,7 +31,7 @@ class IBClient:
       await self.ib.connectAsync(
         host=host,
         port=port,
-        clientId=dt.datetime.now(dt.UTC).strftime("%H%M%S"),
+        clientId=secrets.randbelow(32767) + 1,
         timeout=20,
         readonly=False,
       )
@@ -34,6 +39,31 @@ class IBClient:
     except Exception as e:
       logger.error("Error connecting to IB: {}", e)
       raise
+
+  async def _qualify_contract(
+    self,
+    symbol: str,
+    sec_type: str,
+    exchange: str,
+    currency: str,
+  ) -> object:
+    """Return a qualified Contract, using a cache to avoid redundant IB round-trips."""
+    from ib_async.contract import Contract  # noqa: PLC0415
+    key = (symbol.upper(), sec_type.upper(), exchange.upper(), currency.upper())
+    if key not in self._contract_cache:
+      contract = Contract(symbol=symbol, secType=sec_type, exchange=exchange, currency=currency)
+      [qualified] = await self.ib.qualifyContractsAsync(contract)
+      self._contract_cache[key] = qualified
+      logger.debug("Qualified contract {}/{} conId={}", symbol, exchange, self._contract_cache[key].conId)
+    return self._contract_cache[key]
+
+  def _is_market_open(self) -> bool:
+    """Return True if the NYSE is currently in a trading minute (UTC).
+
+    Used to select live (type 1) vs. frozen (type 2) market data.
+    """
+    nyse = ecals.get_calendar("NYSE")
+    return nyse.is_trading_minute(dt.datetime.now(dt.UTC))
 
   async def send_command_to_ibc(self, command: str) -> None:
     """Send a command to the IBC Command Server.
