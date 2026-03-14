@@ -28,12 +28,6 @@ ibGateway:
     failureThreshold: 40    # 40 × 30s = 20 min ceiling for 2FA
     timeoutSeconds: 5
 
-  # livenessProbe only fires after startupProbe succeeds.
-  # Kills the container if the API port goes away post-startup.
-  livenessProbe:
-    periodSeconds: 60
-    failureThreshold: 3    # 3 min of unresponsiveness → restart
-    timeoutSeconds: 5
 
 mcpServer:
   replicaCount: 1
