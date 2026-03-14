@@ -41,14 +41,13 @@ async def get_tickers(
     ]
 
   """
+  if not contract_ids:
+    logger.warning("get_tickers called with no contract_ids")
+    return []
   try:
-    if contract_ids:
-      contract_ids_list = [
-        int(cid.strip()) for cid in contract_ids.split(",") if cid.strip()
-      ]
-    else:
-      contract_ids_list = None
-
+    contract_ids_list = [
+      int(cid.strip()) for cid in contract_ids.split(",") if cid.strip()
+    ]
     logger.debug(
       "Getting tickers for contract IDs: {contract_ids_list}",
       contract_ids_list=contract_ids_list,

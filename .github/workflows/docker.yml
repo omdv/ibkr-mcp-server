@@ -11,7 +11,22 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Run ruff
+      run: uv run --only-dev ruff check
+
   build:
+    needs: lint
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -1,6 +1,5 @@
 """Gateway manager for IBKR TWS Gateway."""
-import datetime as dt
-
+import secrets
 from typing import Any
 from ib_async import IB
 
@@ -50,9 +49,9 @@ class IBKRGatewayManager:
       await ib.connectAsync(
         config.ib_gateway_host,
         config.ib_gateway_port,
-        clientId="1"+dt.datetime.now(dt.UTC).strftime("%H%M%S"),
+        clientId=secrets.randbelow(32767) + 1,
         timeout=20,
-        readonly=False,
+        readonly=True,
       )
       is_connected = ib.isConnected()
       if is_connected:

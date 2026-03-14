@@ -1,8 +1,10 @@
 """Pydantic models for options and contract requests."""
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class OptionsFilters(BaseModel):
   """Filters to apply to the options chain."""
+
+  model_config = ConfigDict(populate_by_name=True)
 
   expirations: list[str] = Field(
     ...,
@@ -21,11 +23,6 @@ class OptionsFilters(BaseModel):
     default=None,
     description="List of rights to filter by (C for calls, P for puts)",
   )
-
-  class Config:
-    """Config for options filters."""
-
-    populate_by_name = True
 
 
 class OptionsCriteria(BaseModel):
@@ -69,6 +66,8 @@ class OptionsRequest(BaseModel):
 class ContractOptions(BaseModel):
   """Optional parameters for contract details."""
 
+  model_config = ConfigDict(populate_by_name=True)
+
   last_trade_date_or_contract_month: str | None = Field(
     default=None,
     alias="lastTradeDateOrContractMonth",
@@ -87,12 +86,6 @@ class ContractOptions(BaseModel):
     alias="tradingClass",
     description="Trading class (e.g., 'SPXW' for weekly SPX options)",
   )
-
-  class Config:
-    """Config for contract options."""
-
-    populate_by_name = True
-
 
 class ContractDetailsRequest(BaseModel):
   """Request model for contract details endpoint."""

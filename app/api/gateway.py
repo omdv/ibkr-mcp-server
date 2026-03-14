@@ -1,7 +1,6 @@
 """Gateway endpoints."""
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 
 from app.core.setup_logging import logger
 from app.gateway.gateway_manager import IBKRGatewayManager
@@ -10,10 +9,6 @@ router = APIRouter(prefix="/gateway", tags=["gateway"])
 
 # Global gateway manager instance
 gateway_manager = IBKRGatewayManager()
-
-
-class IBKRConnectionRequest(BaseModel):
-  """Request body for connecting to IBKR."""
 
 @router.get("/status", operation_id="get_ibkr_gateway_status")
 async def get_gateway_status() -> dict:

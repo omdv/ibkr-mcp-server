@@ -5,12 +5,6 @@ from app.core.setup_logging import logger
 from app.models import ScannerRequest
 from pydantic import ValidationError
 
-# Module-level query parameter definitions
-FILTER_CODES_QUERY = Query(
-  default=None,
-  description="List of filter parameters in 'parameter=value' format",
-)
-
 @ibkr_router.get("/scanner/workflow", operation_id="get_scanner_workflow")
 async def get_scanner_workflow() -> dict:
   """Get step-by-step workflow for using scanner effectively.

@@ -41,6 +41,12 @@ ignore = [
   "N815", # mixed case in class variables
   "E402", # module level import not at top of file
   "BLE001", # blind exceptions
+  "FBT001", # boolean positional arg — unavoidable for FastAPI query params
+  "FBT002", # boolean default positional arg — same reason
+  "PLR0913", # too many arguments — FastAPI endpoints routinely exceed 5
+  "TRY003", # long exception messages — acceptable for clear error messages
+  "EM101",  # string literal in exception — pairs with TRY003
+  "DTZ011", # date.today() without timezone — date has no tz concept
 ]
 
 # Formatter settings

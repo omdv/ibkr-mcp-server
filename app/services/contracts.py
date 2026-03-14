@@ -171,7 +171,7 @@ class ContractClient(IBClient):
     contract_ids: list[int],
     actions: list[str],
     exchange: str = "SMART",
-  ) -> dict:
+  ) -> dict | None:
     """Create the spread contract from contract ids and actions.
 
     Args:

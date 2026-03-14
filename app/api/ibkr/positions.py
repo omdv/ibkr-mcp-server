@@ -1,8 +1,7 @@
 """Position-related tools."""
-from fastapi.responses import JSONResponse
+from fastapi import HTTPException
 from app.api.ibkr import ibkr_router, ib_interface
 from app.core.setup_logging import logger
-
 @ibkr_router.get("/positions", operation_id="get_positions")
 async def get_positions() -> list[dict]:
   """Get positions for all accounts.
@@ -20,7 +19,7 @@ async def get_positions() -> list[dict]:
     positions = await ib_interface.get_positions()
   except Exception as e:
     logger.error("Error in get_positions: {!s}", str(e))
-    return JSONResponse(content=[], media_type="application/json")
+    raise HTTPException(status_code=500, detail="Failed to retrieve positions") from e
   else:
     logger.debug("Positions: {positions}", positions=positions)
-    return JSONResponse(content=positions, media_type="application/json")
+    return positions

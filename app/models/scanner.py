@@ -50,7 +50,7 @@ class ScannerRequest(BaseModel):
     cls,
     instrument_code: str,
     location_code: str,
-    scan_code: str,
+    scan_code: str | None,
     filters_str: str | None = None,
     max_results: int = 50,
   ) -> "ScannerRequest":

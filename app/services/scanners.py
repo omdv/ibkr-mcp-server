@@ -63,7 +63,7 @@ class ScannerClient(IBClient):
       tree = ElementTree.fromstring(xml_parameters)
       tags = [elem.text for elem in tree.findall(".//scanCode")]
     except Exception as e:
-      logger.error("Error getting scanner filter codes: {}", str(e))
+      logger.error("Error getting scanner scan codes: {}", str(e))
       raise
     else:
       return tags
@@ -89,9 +89,7 @@ class ScannerClient(IBClient):
         locationCode=scanner_request.location_code,
         scanCode=scanner_request.scan_code,
       )
-      active_sub = self.ib.reqScannerSubscription(sub_object, [], cleaned_tags)
       scanner_data = await self.ib.reqScannerDataAsync(sub_object, [], cleaned_tags)
-      self.ib.cancelScannerSubscription(active_sub)
 
       symbols = [row.contractDetails.contract.symbol for row in scanner_data]
     except Exception as e:
