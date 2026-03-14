@@ -9,7 +9,6 @@ keywords:
   - interactive-brokers
   - mcp-server
   - trading
-home: https://github.com/your-org/ibkr-mcp-server
+home: https://github.com/omdv/ibkr-mcp-server
 maintainers:
-  - name: maintainer
-    email: maintainer@example.com
+  - name: omdv
