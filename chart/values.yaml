@@ -54,7 +54,7 @@ mcpServer:
     path: /
     pathType: Prefix
     annotations:
-      nginx.ingress.kubernetes.io/rewrite-target: /
+      cert-manager.io/cluster-issuer: letsencrypt-prod
     tls: []
     # Example TLS configuration:
     # tls:
@@ -71,10 +71,10 @@ mcpServer:
 
   readinessProbe:
     enabled: true
-    initialDelaySeconds: 15
+    initialDelaySeconds: 30
     periodSeconds: 30
-    timeoutSeconds: 5
-    failureThreshold: 3
+    timeoutSeconds: 25
+    failureThreshold: 10
 
 config:
   # IB Gateway Configuration

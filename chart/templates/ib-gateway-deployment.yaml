@@ -57,4 +57,10 @@ spec:
           periodSeconds: {{ .Values.ibGateway.startupProbe.periodSeconds }}
           failureThreshold: {{ .Values.ibGateway.startupProbe.failureThreshold }}
           timeoutSeconds: {{ .Values.ibGateway.startupProbe.timeoutSeconds }}
+        readinessProbe:
+          tcpSocket:
+            port: 4001
+          periodSeconds: 30
+          failureThreshold: 3
+          timeoutSeconds: 5
       restartPolicy: Always
